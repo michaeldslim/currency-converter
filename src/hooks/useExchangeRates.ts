@@ -1,11 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { fetchExchangeRates } from '../services/exchangeRateApi';
-import { ExchangeRates } from '../types';
+import { CurrencyConfig, ExchangeRates } from '../types';
 import { playRefreshSuccessHaptic } from '../utils/haptics';
 import { getTodayIso, isRateDateSelectable } from '../utils/rateCalendar';
 
 import { useLocalToday } from './useLocalToday';
+
+interface UseExchangeRatesOptions {
+  enabledCurrencies: CurrencyConfig[];
+  preferencesReady: boolean;
+}
 
 interface UseExchangeRatesResult {
   rates: ExchangeRates | null;
@@ -20,7 +25,10 @@ interface UseExchangeRatesResult {
   resetToLatest: () => Promise<void>;
 }
 
-export function useExchangeRates(): UseExchangeRatesResult {
+export function useExchangeRates({
+  enabledCurrencies,
+  preferencesReady,
+}: UseExchangeRatesOptions): UseExchangeRatesResult {
   const today = useLocalToday();
   const [rates, setRates] = useState<ExchangeRates | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -32,36 +40,45 @@ export function useExchangeRates(): UseExchangeRatesResult {
   const hasLoadedRef = useRef(false);
   const selectedDateRef = useRef<string | null>(null);
 
-  const loadRates = useCallback(async (date: string | null, showInitialLoader: boolean) => {
-    const shouldCelebrate = hasLoadedRef.current && !showInitialLoader;
+  const currencyCodes = useMemo(
+    () => enabledCurrencies.map((currency) => currency.code),
+    [enabledCurrencies],
+  );
+  const currencyCodesKey = currencyCodes.join(',');
 
-    if (showInitialLoader) {
-      setLoading(true);
-    } else {
-      setRefreshing(true);
-    }
+  const loadRates = useCallback(
+    async (date: string | null, showInitialLoader: boolean) => {
+      const shouldCelebrate = hasLoadedRef.current && !showInitialLoader;
 
-    try {
-      const nextRates = await fetchExchangeRates(date ?? undefined);
-      setRates(nextRates);
-      setError(null);
-      setLastFetchedAt(new Date());
-      hasLoadedRef.current = true;
-
-      if (date === null) {
-        setLastTodayRefreshDate(getTodayIso());
+      if (showInitialLoader) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
       }
 
-      if (shouldCelebrate) {
-        void playRefreshSuccessHaptic();
+      try {
+        const nextRates = await fetchExchangeRates(currencyCodes, date ?? undefined);
+        setRates(nextRates);
+        setError(null);
+        setLastFetchedAt(new Date());
+        hasLoadedRef.current = true;
+
+        if (date === null) {
+          setLastTodayRefreshDate(getTodayIso());
+        }
+
+        if (shouldCelebrate) {
+          void playRefreshSuccessHaptic();
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '환율을 불러오지 못했습니다.');
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '환율을 불러오지 못했습니다.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+    },
+    [currencyCodes],
+  );
 
   const refresh = useCallback(async () => {
     const isInitialLoad = !hasLoadedRef.current;
@@ -88,8 +105,13 @@ export function useExchangeRates(): UseExchangeRatesResult {
   }, [loadRates]);
 
   useEffect(() => {
-    void loadRates(null, true);
-  }, [loadRates]);
+    if (!preferencesReady || currencyCodesKey.length === 0) {
+      return;
+    }
+
+    const isInitialLoad = !hasLoadedRef.current;
+    void loadRates(selectedDateRef.current, isInitialLoad);
+  }, [preferencesReady, currencyCodesKey, loadRates]);
 
   const needsTodayRefresh =
     selectedDate === null &&

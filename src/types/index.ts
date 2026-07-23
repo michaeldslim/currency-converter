@@ -1,4 +1,6 @@
-export type CurrencyCode = 'USD' | 'JPY';
+export type CurrencyCode = 'USD' | 'JPY' | 'EUR';
+
+export type OptionalCurrencyCode = 'EUR';
 
 export interface CurrencyConfig {
   code: CurrencyCode;
@@ -15,5 +17,7 @@ export interface CurrencyConfig {
 export interface ExchangeRates {
   date: string;
   /** KRW per 1 unit of foreign currency. */
-  krwPerUnit: Record<CurrencyCode, number>;
+  krwPerUnit: Partial<Record<CurrencyCode, number>>;
 }
+
+export type OptionalCurrencyPreferences = Record<OptionalCurrencyCode, boolean>;

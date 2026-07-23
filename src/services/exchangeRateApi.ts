@@ -1,4 +1,3 @@
-import { CURRENCIES } from '../constants/currencies';
 import { CurrencyCode, ExchangeRates } from '../types';
 
 interface FrankfurterResponse {
@@ -8,33 +7,39 @@ interface FrankfurterResponse {
   rates: Partial<Record<CurrencyCode, number>>;
 }
 
-const SYMBOLS = CURRENCIES.map((currency) => currency.code).join(',');
-
-function buildApiUrl(date?: string): string {
+function buildApiUrl(currencyCodes: CurrencyCode[], date?: string): string {
+  const symbols = currencyCodes.join(',');
   if (date) {
-    return `https://api.frankfurter.app/${date}?from=KRW&to=${SYMBOLS}`;
+    return `https://api.frankfurter.app/${date}?from=KRW&to=${symbols}`;
   }
-  return `https://api.frankfurter.app/latest?from=KRW&to=${SYMBOLS}`;
+  return `https://api.frankfurter.app/latest?from=KRW&to=${symbols}`;
 }
 
-export async function fetchExchangeRates(date?: string): Promise<ExchangeRates> {
-  const response = await fetch(buildApiUrl(date));
+export async function fetchExchangeRates(
+  currencyCodes: CurrencyCode[],
+  date?: string,
+): Promise<ExchangeRates> {
+  if (currencyCodes.length === 0) {
+    throw new Error('표시할 통화가 없습니다.');
+  }
+
+  const response = await fetch(buildApiUrl(currencyCodes, date));
 
   if (!response.ok) {
     throw new Error(`환율 API 요청 실패 (${response.status})`);
   }
 
   const data = (await response.json()) as FrankfurterResponse;
-  const krwPerUnit = {} as Record<CurrencyCode, number>;
+  const krwPerUnit: Partial<Record<CurrencyCode, number>> = {};
 
-  for (const currency of CURRENCIES) {
-    const krwToForeign = data.rates[currency.code];
+  for (const code of currencyCodes) {
+    const krwToForeign = data.rates[code];
 
     if (!krwToForeign || krwToForeign <= 0) {
-      throw new Error(`${currency.code} 환율 데이터를 불러오지 못했습니다.`);
+      throw new Error(`${code} 환율 데이터를 불러오지 못했습니다.`);
     }
 
-    krwPerUnit[currency.code] = 1 / krwToForeign;
+    krwPerUnit[code] = 1 / krwToForeign;
   }
 
   return {

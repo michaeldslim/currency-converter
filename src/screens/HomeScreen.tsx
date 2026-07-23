@@ -12,21 +12,29 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CurrencyCard } from '../components/CurrencyCard';
 import { CurrencyCardSkeleton } from '../components/CurrencyCardSkeleton';
+import { CurrencySettingsModal } from '../components/CurrencySettingsModal';
 import { RateDateCalendarModal } from '../components/RateDateCalendarModal';
-import { CURRENCIES } from '../constants/currencies';
 import { useAppTheme } from '../hooks/useAppTheme';
+import { useEnabledCurrencies } from '../hooks/useEnabledCurrencies';
 import { useExchangeRates } from '../hooks/useExchangeRates';
 import { AppColors } from '../theme/colors';
 import { formatFetchedAt, formatRateDate } from '../utils/formatCurrency';
 
-const CARD_GAP = 16;
-const CARD_HEIGHT = 200;
+const CARD_GAP = 12;
+const CARD_HEIGHT = 138;
 const VERTICAL_PADDING = 24;
 
 export function HomeScreen() {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [calendarVisible, setCalendarVisible] = useState(false);
+  const [settingsVisible, setSettingsVisible] = useState(false);
+  const {
+    enabledCurrencies,
+    optionalPreferences,
+    preferencesReady,
+    setOptionalCurrencyEnabled,
+  } = useEnabledCurrencies();
   const {
     rates,
     selectedDate,
@@ -38,30 +46,40 @@ export function HomeScreen() {
     refresh,
     selectDate,
     resetToLatest,
-  } = useExchangeRates();
+  } = useExchangeRates({ enabledCurrencies, preferencesReady });
 
   const cardStack = (
     <View style={styles.cardStack}>
-      {CURRENCIES.map((currency) => (
-        <View key={currency.code} style={[styles.cardSlot, { height: CARD_HEIGHT }]}>
-          {rates ? (
-            <CurrencyCard
-              currency={currency}
-              krwPerUnit={rates.krwPerUnit[currency.code]}
-              colors={colors}
-            />
-          ) : (
-            <CurrencyCardSkeleton currency={currency} colors={colors} />
-          )}
-        </View>
-      ))}
+      {enabledCurrencies.map((currency) => {
+        const krwPerUnit = rates?.krwPerUnit[currency.code];
+
+        return (
+          <View key={currency.code} style={[styles.cardSlot, { height: CARD_HEIGHT }]}>
+            {krwPerUnit !== undefined ? (
+              <CurrencyCard currency={currency} krwPerUnit={krwPerUnit} colors={colors} />
+            ) : (
+              <CurrencyCardSkeleton currency={currency} colors={colors} />
+            )}
+          </View>
+        );
+      })}
     </View>
   );
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.header}>
-        <Text style={styles.title}>환율 변환기</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>환율 변환기</Text>
+          <Pressable
+            style={styles.settingsButton}
+            onPress={() => setSettingsVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="표시 통화 설정"
+          >
+            <Text style={styles.settingsButtonText}>표시 통화</Text>
+          </Pressable>
+        </View>
         <Text style={styles.subtitle}>기준 통화: 원화 (KRW)</Text>
         {lastFetchedAt ? (
           <Text style={styles.fetchedAt}>
@@ -122,6 +140,13 @@ export function HomeScreen() {
         />
       ) : null}
 
+      <CurrencySettingsModal
+        visible={settingsVisible}
+        optionalPreferences={optionalPreferences}
+        onClose={() => setSettingsVisible(false)}
+        onToggleOptionalCurrency={(code, enabled) => void setOptionalCurrencyEnabled(code, enabled)}
+      />
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -166,10 +191,30 @@ function createStyles(colors: AppColors) {
       paddingTop: 12,
       paddingBottom: 8,
     },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
     title: {
+      flex: 1,
       fontSize: 30,
       fontWeight: '800',
       color: colors.textPrimary,
+    },
+    settingsButton: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 10,
+      backgroundColor: colors.todayButtonBg,
+      borderWidth: 1,
+      borderColor: colors.todayButtonBorder,
+    },
+    settingsButtonText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.todayButtonText,
     },
     subtitle: {
       marginTop: 6,
@@ -197,7 +242,7 @@ function createStyles(colors: AppColors) {
       borderColor: colors.accentBorder,
     },
     dateLabel: {
-      fontSize: 13,
+      fontSize: 11,
       fontWeight: '700',
       color: colors.accentText,
       letterSpacing: 0.8,
@@ -205,14 +250,14 @@ function createStyles(colors: AppColors) {
     },
     dateValue: {
       marginTop: 4,
-      fontSize: 22,
+      fontSize: 18,
       fontWeight: '800',
       color: colors.accentTextStrong,
       letterSpacing: -0.3,
     },
     dateHint: {
       marginTop: 6,
-      fontSize: 12,
+      fontSize: 10,
       fontWeight: '600',
       color: colors.accent,
     },
