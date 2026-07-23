@@ -1,0 +1,149 @@
+---
+description: Currency Converter Android app roadmap and conventions
+globs: src/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Currency Converter Plan
+
+Android-only React Native + Expo + TypeScript currency viewer. **Base currency: KRW.** Shows rate cards for **USD** and **JPY** (EUR / GBP hidden for now).
+
+## Tech Stack
+
+| Layer | Choice |
+|-------|--------|
+| Framework | React Native 0.86 (Expo SDK 57) |
+| Language | TypeScript (strict) |
+| Platform | **Android only** (`platforms: ["android"]`) |
+| Build / OTA | EAS Build (`eas.json`) |
+| Rates API | [Frankfurter](https://www.frankfurter.app/) — no API key |
+| Calendar | `react-native-calendars` |
+| Safe area | `react-native-safe-area-context` |
+| Haptics | `expo-haptics` |
+| Theming | `useColorScheme` + `src/theme/colors.ts` |
+
+Bundle ID: `com.mike008.currencyconverter`
+
+## Display Rules
+
+| Currency | Card label | KRW calculation |
+|----------|------------|-----------------|
+| USD | `$1` | `krwPerUnit.USD × 1` |
+| JPY | `¥100` | `krwPerUnit.JPY × 100` |
+
+- EUR / GBP — add later in `currencies.ts`; not shown in UI
+- API: `KRW→foreign`; invert to `krwPerUnit` (`1 / rate`)
+- **2 cards** (USD, JPY), `CARD_HEIGHT = 200`, `CARD_GAP = 16`
+- Pull-to-refresh reloads current view (today or selected date)
+
+### 기준일 & Calendar
+
+- **기준일** badge — prominent blue style; tap opens calendar modal
+- Calendar opens to **selected/displayed date month** (`selectedDate ?? rates.date`)
+- Selectable: weekdays only, `MIN_RATE_DATE` (1999-01-04) through today
+- Disabled: weekends, TARGET/ECB holidays, future dates (`rateCalendar.ts`)
+- API: `/latest` (today) or `/{YYYY-MM-DD}` (historical)
+- **오늘 환율** button — visible when viewing a past date; calls `resetToLatest()`
+- **새로고침** banner — when app stays open past midnight (`needsTodayRefresh`); fetches `/latest`
+
+### Safe Area (Android edge-to-edge)
+
+- `edgeToEdgeEnabled=true` in `android/gradle.properties`
+- `App.tsx`: `SafeAreaProvider` + `initialWindowMetrics`
+- `HomeScreen`: `SafeAreaView` edges `top`, `left`, `right`, `bottom`
+- `RateDateCalendarModal`: bottom `SafeAreaView` on sheet (Modal is outside parent safe area)
+
+## Architecture
+
+| Path | Role |
+|------|------|
+| `App.tsx` | SafeAreaProvider, StatusBar, HomeScreen entry |
+| `src/types/index.ts` | `CurrencyCode` (`USD` \| `JPY`), `CurrencyConfig`, `ExchangeRates` |
+| `src/constants/currencies.ts` | Card metadata (symbols, colors, display amounts) |
+| `src/services/exchangeRateApi.ts` | Frankfurter fetch (`latest` or `/{date}`) + invert |
+| `src/hooks/useExchangeRates.ts` | Load / refresh / selectDate / resetToLatest / needsTodayRefresh |
+| `src/hooks/useLocalToday.ts` | Local date tracking (60s interval + AppState active) |
+| `src/utils/formatCurrency.ts` | `₩` formatting (`ko-KR`), date label |
+| `src/utils/rateCalendar.ts` | Selectable dates, TARGET holidays, month marked dates |
+| `src/components/CurrencyCard.tsx` | Single currency card UI |
+| `src/theme/colors.ts` | Light / dark color tokens |
+| `src/hooks/useAppTheme.ts` | `useColorScheme` wrapper |
+| `src/components/CurrencyCardSkeleton.tsx` | Pulsing skeleton card |
+| `src/components/SkeletonBone.tsx` | Animated skeleton block |
+| `src/utils/haptics.ts` | Success haptic on refresh |
+| `src/components/RateDateCalendarModal.tsx` | Calendar bottom sheet (Korean locale, themed) |
+| `src/screens/HomeScreen.tsx` | Header, date badge, refresh banner, card stack, last-fetched time |
+
+Keep **rate math in service/utils**, not in components.
+
+## Implementation Status
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| Phase 1 — MVP | **Done** | Cards, API, calendar, safe area, date rollover refresh |
+| Phase 2 — UX polish | **Done** | Skeleton, haptics, dark mode, icon/splash theme |
+| Phase 3 — Features | Pending | Manual input, favorites, offline cache, rate delta |
+| Phase 4 — Release | Pending | Production EAS build, Play Store, OTA |
+
+## Phase 1 — MVP ✅
+
+- [x] Expo SDK 57 + TypeScript scaffold
+- [x] Android-only `app.json` (`com.mike008.currencyconverter`)
+- [x] EAS profiles (`development`, `preview`, `production`)
+- [x] USD $1 + JPY ¥100 cards
+- [x] Frankfurter live + historical rates
+- [x] Pull-to-refresh + error retry
+- [x] KRW formatting (`ko-KR`)
+- [x] 기준일 badge (standout style)
+- [x] Historical calendar (`react-native-calendars`)
+- [x] Weekend / holiday / future date blocking
+- [x] 오늘 환율 + midnight 새로고침 banner
+- [x] Safe area (main screen + calendar modal)
+
+| `src/screens/HomeScreen.tsx` | Header, date badge, refresh banner, card stack, last-fetched time |
+
+## Phase 2 — UX polish ✅
+
+- [x] Skeleton loading on cards (`CurrencyCardSkeleton` + `SkeletonBone`)
+- [x] Last-fetched timestamp (local time, `formatFetchedAt`)
+- [x] Haptic feedback on refresh success (`expo-haptics`)
+- [x] Dark mode (`userInterfaceStyle: automatic`, `useAppTheme`)
+- [x] App icon / splash finance theme (navy `#1E3A8A`, ₩ exchange mark)
+
+## Phase 3 — Features
+
+- [ ] Re-enable EUR / GBP cards
+- [ ] Manual amount input (KRW ↔ foreign)
+- [ ] Favorite currency pin order
+- [ ] Offline cache (`AsyncStorage` + stale badge)
+- [ ] Rate change indicator (↑↓ vs previous fetch)
+
+## Phase 4 — Release
+
+- [ ] `eas build --platform android --profile production`
+- [ ] Play Store listing (ko)
+- [ ] `runtimeVersion` + EAS Update channel for JS-only fixes
+- [ ] Privacy policy (network: Frankfurter API only)
+
+## Commands
+
+```bash
+npm install
+npm start                    # Expo dev server
+npm run android              # expo start --android
+npm run typecheck            # tsc --noEmit
+
+npx expo prebuild --platform android   # generate android/ folder
+npx expo run:android                   # local native build + run
+
+eas build -p android --profile preview
+eas build -p android --profile production
+```
+
+## Conventions
+
+- Portrait only
+- Minimize scope per change; match existing file layout
+- Run `npm run typecheck` after TS changes
+- Native module / `android/` changes → new EAS build; JS-only → EAS Update eligible
+- No `CLAUDE.md` / `.claude/` — Cursor rules only (this file)
