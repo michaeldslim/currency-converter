@@ -1,6 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -22,14 +25,20 @@ import { AppColors } from '../theme/colors';
 import { formatFetchedAt, formatRateDate } from '../utils/formatCurrency';
 
 const CARD_GAP = 12;
-const CARD_HEIGHT = 138;
+const CARD_HEIGHT = 168;
+const CARD_STACK_MARGIN_TOP = 12;
 const VERTICAL_PADDING = 24;
 
 export function HomeScreen() {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const scrollRef = useRef<ScrollView>(null);
+  const headerHeightRef = useRef(0);
+  const cardOffsetRef = useRef<Record<string, number>>({});
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
+  const [keyboardPadding, setKeyboardPadding] = useState(0);
+  const [inputResetVersion, setInputResetVersion] = useState(0);
   const {
     enabledCurrencies,
     optionalPreferences,
@@ -52,15 +61,62 @@ export function HomeScreen() {
   const showStaleRateHint =
     rates !== null && selectedDate === null && rates.date < today;
 
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener('keyboardDidShow', (event) => {
+      setKeyboardPadding(event.endCoordinates.height);
+    });
+    const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardPadding(0);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
+
+  const resetAllCardInputs = () => {
+    Keyboard.dismiss();
+    setInputResetVersion((version) => version + 1);
+  };
+
+  const scrollToCardInput = (currencyCode: string) => {
+    const cardOffset = cardOffsetRef.current[currencyCode];
+    if (cardOffset === undefined) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({
+        y: Math.max(0, headerHeightRef.current + CARD_STACK_MARGIN_TOP + cardOffset - 24),
+        animated: true,
+      });
+    });
+  };
+
   const cardStack = (
-    <View style={styles.cardStack}>
+    <View style={styles.cardStack} pointerEvents="box-none">
       {enabledCurrencies.map((currency) => {
         const krwPerUnit = rates?.krwPerUnit[currency.code];
 
         return (
-          <View key={currency.code} style={[styles.cardSlot, { height: CARD_HEIGHT }]}>
+          <View
+            key={currency.code}
+            style={[styles.cardSlot, { height: CARD_HEIGHT }]}
+            onLayout={(event) => {
+              cardOffsetRef.current[currency.code] = event.nativeEvent.layout.y;
+            }}
+            onStartShouldSetResponder={() => true}
+            onResponderTerminationRequest={() => false}
+          >
             {krwPerUnit !== undefined ? (
-              <CurrencyCard currency={currency} krwPerUnit={krwPerUnit} colors={colors} />
+              <CurrencyCard
+                currency={currency}
+                krwPerUnit={krwPerUnit}
+                colors={colors}
+                inputResetVersion={inputResetVersion}
+                onInputFocus={() => scrollToCardInput(currency.code)}
+              />
             ) : (
               <CurrencyCardSkeleton currency={currency} colors={colors} />
             )}
@@ -72,116 +128,135 @@ export function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
-      <View style={styles.header}>
-        <View style={styles.titleRow}>
-          <Text style={styles.title}>환율 변환기</Text>
-          <Pressable
-            style={styles.settingsButton}
-            onPress={() => setSettingsVisible(true)}
-            accessibilityRole="button"
-            accessibilityLabel="표시 통화 설정"
-          >
-            <Text style={styles.settingsButtonText}>표시 통화</Text>
-          </Pressable>
-        </View>
-        <Text style={styles.subtitle}>기준 통화: 원화 (KRW)</Text>
-        {lastFetchedAt ? (
-          <Text style={styles.fetchedAt}>
-            마지막 조회: {formatFetchedAt(lastFetchedAt)}
-          </Text>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoid}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+      >
+        {rates ? (
+          <RateDateCalendarModal
+            visible={calendarVisible}
+            displayedDate={rates.date}
+            selectedDate={selectedDate}
+            onClose={() => setCalendarVisible(false)}
+            onSelectDate={(isoDate) => void selectDate(isoDate)}
+          />
         ) : null}
 
-        {rates ? (
-          <View style={styles.dateRow}>
-            <Pressable
-              style={styles.dateBadge}
-              onPress={() => setCalendarVisible(true)}
-              accessibilityRole="button"
-              accessibilityLabel="기준일 선택"
-            >
-              <Text style={styles.dateLabel}>기준일</Text>
-              <Text style={styles.dateValue}>{formatRateDate(rates.date)}</Text>
-              <Text style={styles.dateHint}>
-                {showStaleRateHint ? '오늘 고시 전 · 전 영업일 환율' : '탭하여 날짜 변경'}
-              </Text>
-            </Pressable>
+        <CurrencySettingsModal
+          visible={settingsVisible}
+          optionalPreferences={optionalPreferences}
+          onClose={() => setSettingsVisible(false)}
+          onToggleOptionalCurrency={(code, enabled) => void setOptionalCurrencyEnabled(code, enabled)}
+        />
 
-            {selectedDate ? (
-              <Pressable style={styles.todayButton} onPress={() => void resetToLatest()}>
-                <Text style={styles.todayButtonText}>오늘 환율</Text>
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: VERTICAL_PADDING + keyboardPadding },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            rates ? (
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => void refresh()}
+                colors={[colors.accent]}
+                tintColor={colors.accent}
+              />
+            ) : undefined
+          }
+        >
+          <Pressable style={styles.outsideTapArea} onPress={resetAllCardInputs}>
+            <View
+              style={styles.header}
+              onLayout={(event) => {
+                headerHeightRef.current = event.nativeEvent.layout.height;
+              }}
+            >
+            <View style={styles.titleRow}>
+              <Text style={styles.title}>환율 변환기</Text>
+              <Pressable
+                style={styles.settingsButton}
+                onPress={() => setSettingsVisible(true)}
+                accessibilityRole="button"
+                accessibilityLabel="표시 통화 설정"
+              >
+                <Text style={styles.settingsButtonText}>표시 통화</Text>
+              </Pressable>
+            </View>
+            <Text style={styles.subtitle}>기준 통화: 원화 (KRW)</Text>
+            {lastFetchedAt ? (
+              <Text style={styles.fetchedAt}>
+                마지막 조회: {formatFetchedAt(lastFetchedAt)}
+              </Text>
+            ) : null}
+
+            {rates ? (
+              <View style={styles.dateRow}>
+                <Pressable
+                  style={styles.dateBadge}
+                  onPress={() => setCalendarVisible(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="기준일 선택"
+                >
+                  <Text style={styles.dateLabel}>기준일</Text>
+                  <Text style={styles.dateValue}>{formatRateDate(rates.date)}</Text>
+                  <Text style={styles.dateHint}>
+                    {showStaleRateHint ? '오늘 고시 전 · 전 영업일 환율' : '탭하여 날짜 변경'}
+                  </Text>
+                </Pressable>
+
+                {selectedDate ? (
+                  <Pressable style={styles.todayButton} onPress={() => void resetToLatest()}>
+                    <Text style={styles.todayButtonText}>오늘 환율</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
+
+            {!selectedDate && needsTodayRefresh ? (
+              <Pressable
+                style={styles.refreshBanner}
+                onPress={() => void resetToLatest()}
+                disabled={refreshing}
+                accessibilityRole="button"
+                accessibilityLabel="오늘 환율 새로고침"
+              >
+                {refreshing ? (
+                  <ActivityIndicator color={colors.accentText} size="small" />
+                ) : (
+                  <>
+                    <Text style={styles.refreshBannerTitle}>새로고침</Text>
+                    <Text style={styles.refreshBannerHint}>
+                      날짜가 변경되었습니다. 오늘 환율을 불러오세요.
+                    </Text>
+                  </>
+                )}
               </Pressable>
             ) : null}
-          </View>
-        ) : null}
+            </View>
 
-        {!selectedDate && needsTodayRefresh ? (
-          <Pressable
-            style={styles.refreshBanner}
-            onPress={() => void resetToLatest()}
-            disabled={refreshing}
-            accessibilityRole="button"
-            accessibilityLabel="오늘 환율 새로고침"
-          >
-            {refreshing ? (
-              <ActivityIndicator color={colors.accentText} size="small" />
-            ) : (
-              <>
-                <Text style={styles.refreshBannerTitle}>새로고침</Text>
-                <Text style={styles.refreshBannerHint}>
-                  날짜가 변경되었습니다. 오늘 환율을 불러오세요.
-                </Text>
-              </>
-            )}
+            {error ? (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{error}</Text>
+                <Pressable style={styles.retryButton} onPress={() => void refresh()}>
+                  <Text style={styles.retryButtonText}>다시 시도</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            {loading && !rates ? (
+              <Text style={styles.loadingHint}>환율을 불러오는 중...</Text>
+            ) : null}
+
+            {cardStack}
           </Pressable>
-        ) : null}
-      </View>
-
-      {rates ? (
-        <RateDateCalendarModal
-          visible={calendarVisible}
-          displayedDate={rates.date}
-          selectedDate={selectedDate}
-          onClose={() => setCalendarVisible(false)}
-          onSelectDate={(isoDate) => void selectDate(isoDate)}
-        />
-      ) : null}
-
-      <CurrencySettingsModal
-        visible={settingsVisible}
-        optionalPreferences={optionalPreferences}
-        onClose={() => setSettingsVisible(false)}
-        onToggleOptionalCurrency={(code, enabled) => void setOptionalCurrencyEnabled(code, enabled)}
-      />
-
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          rates ? (
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => void refresh()}
-              colors={[colors.accent]}
-              tintColor={colors.accent}
-            />
-          ) : undefined
-        }
-        showsVerticalScrollIndicator={false}
-      >
-        {error ? (
-          <View style={styles.errorBox}>
-            <Text style={styles.errorText}>{error}</Text>
-            <Pressable style={styles.retryButton} onPress={() => void refresh()}>
-              <Text style={styles.retryButtonText}>다시 시도</Text>
-            </Pressable>
-          </View>
-        ) : null}
-
-        {loading && !rates ? (
-          <Text style={styles.loadingHint}>환율을 불러오는 중...</Text>
-        ) : null}
-
-        {cardStack}
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -192,8 +267,11 @@ function createStyles(colors: AppColors) {
       flex: 1,
       backgroundColor: colors.background,
     },
+    keyboardAvoid: {
+      flex: 1,
+    },
     header: {
-      paddingHorizontal: 24,
+      paddingHorizontal: 4,
       paddingTop: 12,
       paddingBottom: 8,
     },
@@ -306,7 +384,10 @@ function createStyles(colors: AppColors) {
     },
     scrollContent: {
       paddingHorizontal: 20,
-      paddingBottom: VERTICAL_PADDING,
+      flexGrow: 1,
+    },
+    outsideTapArea: {
+      flexGrow: 1,
     },
     loadingHint: {
       marginTop: 12,

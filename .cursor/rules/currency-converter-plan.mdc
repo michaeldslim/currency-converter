@@ -33,7 +33,7 @@ Bundle ID: `com.mike008.currencyconverter`
 
 - **EUR** — optional via user preference (see Phase 3); off by default
 - API: `KRW→foreign`; invert to `krwPerUnit` (`1 / rate`)
-- **2 cards** (USD, JPY), `CARD_HEIGHT = 138`, `CARD_GAP = 12`
+- **2 cards** (USD, JPY), `CARD_HEIGHT = 168`, `CARD_GAP = 12`
 - Pull-to-refresh reloads current view (today or selected date)
 
 ### 기준일 & Calendar
@@ -113,7 +113,7 @@ Keep **rate math in service/utils**, not in components.
 ## Phase 3 — Features
 
 - [x] Optional EUR card (toggle + `AsyncStorage` preference)
-- [ ] Manual amount input (KRW ↔ foreign)
+- [ ] Manual amount input (KRW ↔ foreign) — per-card foreign amount → KRW (done); reverse pending
 - [ ] Favorite currency pin order
 - [ ] Offline cache (`AsyncStorage` + stale badge)
 - [ ] Rate change indicator (↑↓ vs previous fetch)

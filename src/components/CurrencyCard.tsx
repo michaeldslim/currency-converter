@@ -1,17 +1,38 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { AppColors } from '../theme/colors';
 import { CurrencyConfig } from '../types';
-import { formatKrw } from '../utils/formatCurrency';
+import { formatKrw, parseAmountInput } from '../utils/formatCurrency';
 
 interface CurrencyCardProps {
   currency: CurrencyConfig;
   krwPerUnit: number;
   colors: AppColors;
+  onInputFocus?: () => void;
+  inputResetVersion?: number;
 }
 
-export function CurrencyCard({ currency, krwPerUnit, colors }: CurrencyCardProps) {
-  const krwValue = krwPerUnit * currency.displayAmount;
+export function CurrencyCard({
+  currency,
+  krwPerUnit,
+  colors,
+  onInputFocus,
+  inputResetVersion = 0,
+}: CurrencyCardProps) {
+  const [amountText, setAmountText] = useState(String(currency.displayAmount));
+
+  useEffect(() => {
+    setAmountText(String(currency.displayAmount));
+  }, [currency.code, currency.displayAmount, inputResetVersion]);
+
+  const parsedAmount = useMemo(() => parseAmountInput(amountText), [amountText]);
+  const convertedKrw = parsedAmount !== null ? parsedAmount * krwPerUnit : null;
+
+  const handleInputFocus = () => {
+    setAmountText('');
+    onInputFocus?.();
+  };
 
   return (
     <View
@@ -37,8 +58,30 @@ export function CurrencyCard({ currency, krwPerUnit, colors }: CurrencyCardProps
         </View>
       </View>
 
-      <Text style={[styles.krwValue, { color: colors.textPrimary }]}>{formatKrw(krwValue)}</Text>
-      <Text style={[styles.caption, { color: colors.textMuted }]}>기준 통화: 원화 (KRW)</Text>
+      <View style={styles.converterBlock}>
+        <TextInput
+          style={[
+            styles.amountInput,
+            {
+              color: colors.textPrimary,
+              backgroundColor: colors.accentSoft,
+              borderColor: colors.accentBorder,
+            },
+          ]}
+          value={amountText}
+          onChangeText={setAmountText}
+          onFocus={handleInputFocus}
+          keyboardType="numeric"
+          inputMode="decimal"
+          textAlign="right"
+          placeholder="0"
+          placeholderTextColor={colors.textMuted}
+          accessibilityLabel={`${currency.nameKo} 금액 입력`}
+        />
+        <Text style={[styles.krwValue, { color: colors.textPrimary }]}>
+          {convertedKrw !== null ? formatKrw(convertedKrw) : '—'}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -58,7 +101,7 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 10,
   },
   flag: {
     fontSize: 22,
@@ -86,13 +129,23 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
+  converterBlock: {
+    alignItems: 'flex-end',
+    gap: 6,
+  },
+  amountInput: {
+    minWidth: 132,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    fontSize: 18,
+    fontWeight: '600',
+  },
   krwValue: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '800',
     letterSpacing: -0.5,
-  },
-  caption: {
-    marginTop: 3,
-    fontSize: 10,
+    textAlign: 'right',
   },
 });
