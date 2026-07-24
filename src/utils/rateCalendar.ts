@@ -107,6 +107,15 @@ export function isRateDateSelectable(isoDate: string): boolean {
   return true;
 }
 
+/** Explicit today when selectable (matches calendar); otherwise /latest on weekends/holidays. */
+export function resolveLatestFetchDate(): string | undefined {
+  const today = getTodayIso();
+  if (isRateDateSelectable(today)) {
+    return today;
+  }
+  return undefined;
+}
+
 export function buildMonthMarkedDates(
   year: number,
   month: number,

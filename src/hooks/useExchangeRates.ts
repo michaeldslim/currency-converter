@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchExchangeRates } from '../services/exchangeRateApi';
 import { CurrencyConfig, ExchangeRates } from '../types';
 import { playRefreshSuccessHaptic } from '../utils/haptics';
-import { getTodayIso, isRateDateSelectable } from '../utils/rateCalendar';
+import { getTodayIso, isRateDateSelectable, resolveLatestFetchDate } from '../utils/rateCalendar';
 
 import { useLocalToday } from './useLocalToday';
 
@@ -57,7 +57,8 @@ export function useExchangeRates({
       }
 
       try {
-        const nextRates = await fetchExchangeRates(currencyCodes, date ?? undefined);
+        const requestDate = date !== null ? date : resolveLatestFetchDate();
+        const nextRates = await fetchExchangeRates(currencyCodes, requestDate);
         setRates(nextRates);
         setError(null);
         setLastFetchedAt(new Date());
@@ -85,9 +86,20 @@ export function useExchangeRates({
     await loadRates(selectedDateRef.current, isInitialLoad);
   }, [loadRates]);
 
+  const resetToLatest = useCallback(async () => {
+    selectedDateRef.current = null;
+    setSelectedDate(null);
+    await loadRates(null, false);
+  }, [loadRates]);
+
   const selectDate = useCallback(
     async (isoDate: string) => {
       if (!isRateDateSelectable(isoDate)) {
+        return;
+      }
+
+      if (isoDate === getTodayIso()) {
+        await resetToLatest();
         return;
       }
 
@@ -95,14 +107,8 @@ export function useExchangeRates({
       setSelectedDate(isoDate);
       await loadRates(isoDate, false);
     },
-    [loadRates],
+    [loadRates, resetToLatest],
   );
-
-  const resetToLatest = useCallback(async () => {
-    selectedDateRef.current = null;
-    setSelectedDate(null);
-    await loadRates(null, false);
-  }, [loadRates]);
 
   useEffect(() => {
     if (!preferencesReady || currencyCodesKey.length === 0) {

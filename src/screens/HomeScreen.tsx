@@ -17,6 +17,7 @@ import { RateDateCalendarModal } from '../components/RateDateCalendarModal';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { useEnabledCurrencies } from '../hooks/useEnabledCurrencies';
 import { useExchangeRates } from '../hooks/useExchangeRates';
+import { useLocalToday } from '../hooks/useLocalToday';
 import { AppColors } from '../theme/colors';
 import { formatFetchedAt, formatRateDate } from '../utils/formatCurrency';
 
@@ -47,6 +48,9 @@ export function HomeScreen() {
     selectDate,
     resetToLatest,
   } = useExchangeRates({ enabledCurrencies, preferencesReady });
+  const today = useLocalToday();
+  const showStaleRateHint =
+    rates !== null && selectedDate === null && rates.date < today;
 
   const cardStack = (
     <View style={styles.cardStack}>
@@ -83,7 +87,7 @@ export function HomeScreen() {
         <Text style={styles.subtitle}>기준 통화: 원화 (KRW)</Text>
         {lastFetchedAt ? (
           <Text style={styles.fetchedAt}>
-            마지막 업데이트: {formatFetchedAt(lastFetchedAt)}
+            마지막 조회: {formatFetchedAt(lastFetchedAt)}
           </Text>
         ) : null}
 
@@ -97,7 +101,9 @@ export function HomeScreen() {
             >
               <Text style={styles.dateLabel}>기준일</Text>
               <Text style={styles.dateValue}>{formatRateDate(rates.date)}</Text>
-              <Text style={styles.dateHint}>탭하여 날짜 변경</Text>
+              <Text style={styles.dateHint}>
+                {showStaleRateHint ? '오늘 고시 전 · 전 영업일 환율' : '탭하여 날짜 변경'}
+              </Text>
             </Pressable>
 
             {selectedDate ? (
