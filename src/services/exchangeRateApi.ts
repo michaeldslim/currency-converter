@@ -1,13 +1,13 @@
-import { CurrencyCode, ExchangeRates } from '../types';
+import { CurrencyCode, ExchangeRates, ForeignCurrencyCode } from '../types';
 
 interface FrankfurterResponse {
   amount: number;
   base: 'KRW';
   date: string;
-  rates: Partial<Record<CurrencyCode, number>>;
+  rates: Partial<Record<ForeignCurrencyCode, number>>;
 }
 
-function buildApiUrl(currencyCodes: CurrencyCode[], date?: string): string {
+function buildApiUrl(currencyCodes: ForeignCurrencyCode[], date?: string): string {
   const symbols = currencyCodes.join(',');
   if (date) {
     return `https://api.frankfurter.app/${date}?from=KRW&to=${symbols}`;
@@ -16,7 +16,7 @@ function buildApiUrl(currencyCodes: CurrencyCode[], date?: string): string {
 }
 
 export async function fetchExchangeRates(
-  currencyCodes: CurrencyCode[],
+  currencyCodes: ForeignCurrencyCode[],
   date?: string,
 ): Promise<ExchangeRates> {
   if (currencyCodes.length === 0) {

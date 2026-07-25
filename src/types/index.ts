@@ -1,6 +1,8 @@
-export type CurrencyCode = 'USD' | 'JPY' | 'EUR';
+export type CurrencyCode = 'USD' | 'JPY' | 'EUR' | 'KRW';
 
-export type OptionalCurrencyCode = 'EUR';
+export type ForeignCurrencyCode = Exclude<CurrencyCode, 'KRW'>;
+
+export type OptionalCurrencyCode = 'EUR' | 'KRW';
 
 export interface CurrencyConfig {
   code: CurrencyCode;

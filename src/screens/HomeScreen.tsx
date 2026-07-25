@@ -22,8 +22,8 @@ import { useEnabledCurrencies } from '../hooks/useEnabledCurrencies';
 import { useExchangeRates } from '../hooks/useExchangeRates';
 import { useLocalToday } from '../hooks/useLocalToday';
 import { AppColors } from '../theme/colors';
+import { isCardRatesReady } from '../constants/currencies';
 import { formatFetchedAt, formatRateDate } from '../utils/formatCurrency';
-import { getCrossConversion } from '../utils/crossRate';
 
 const CARD_GAP = 12;
 const CARD_HEIGHT = 192;
@@ -98,7 +98,7 @@ export function HomeScreen() {
   const cardStack = (
     <View style={styles.cardStack} pointerEvents="box-none">
       {enabledCurrencies.map((currency) => {
-        const krwPerUnit = rates?.krwPerUnit[currency.code];
+        const cardRatesReady = rates ? isCardRatesReady(currency.code, rates.krwPerUnit) : false;
 
         return (
           <View
@@ -110,13 +110,10 @@ export function HomeScreen() {
             onStartShouldSetResponder={() => true}
             onResponderTerminationRequest={() => false}
           >
-            {krwPerUnit !== undefined ? (
+            {cardRatesReady ? (
               <CurrencyCard
                 currency={currency}
-                krwPerUnit={krwPerUnit}
-                crossConversion={
-                  rates ? getCrossConversion(currency.code, rates.krwPerUnit) : undefined
-                }
+                krwPerUnit={rates!.krwPerUnit}
                 colors={colors}
                 inputResetVersion={inputResetVersion}
                 onInputFocus={() => scrollToCardInput(currency.code)}

@@ -18,6 +18,7 @@ function parseStoredPreferences(raw: string | null): OptionalCurrencyPreferences
     const parsed = JSON.parse(raw) as Partial<OptionalCurrencyPreferences>;
     return {
       EUR: parsed.EUR === true,
+      KRW: parsed.KRW === true,
     };
   } catch {
     return { ...DEFAULT_OPTIONAL_PREFERENCES };

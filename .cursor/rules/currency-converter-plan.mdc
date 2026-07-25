@@ -28,10 +28,12 @@ Bundle ID: `com.mike008.currencyconverter`
 
 | Currency | Card label | Outputs |
 |----------|------------|---------|
-| USD | `$1` | 원화 (`krwPerUnit.USD × amount`), 엔화 (KRW 삼각환산 → JPY) |
-| JPY | `¥100` | 원화 (`krwPerUnit.JPY × amount`), 달러 (KRW 삼각환산 → USD) |
+| USD | `$1` | 원화, 엔화 |
+| JPY | `¥100` | 원화, 달러 |
+| KRW | `₩1,000` | 달러, 엔화 (optional toggle) |
 
-- **EUR** — optional via user preference (see Phase 3); off by default; 원화만 표시
+- **EUR** — optional via user preference; off by default; 원화만 표시
+- **KRW** — optional via user preference; off by default
 - API: `KRW→foreign`; invert to `krwPerUnit` (`1 / rate`)
 - 교차 환율: `amount × fromKrwPerUnit / toKrwPerUnit` (`crossRate.ts`)
 - **2 cards** (USD, JPY), `CARD_HEIGHT = 192`, `CARD_GAP = 12`
@@ -115,6 +117,7 @@ Keep **rate math in service/utils**, not in components.
 ## Phase 3 — Features
 
 - [x] Optional EUR card (toggle + `AsyncStorage` preference)
+- [x] Optional KRW card (toggle; 달러·엔화 출력)
 - [x] Per-card cross rate — USD card: 원화+엔화; JPY card: 원화+달러 (`crossRate.ts`)
 - [ ] Manual amount input (KRW ↔ foreign) — per-card foreign amount → KRW (done); reverse pending
 - [ ] Favorite currency pin order

@@ -36,7 +36,7 @@ export function CurrencySettingsModal({
               </Pressable>
             </View>
 
-            <Text style={styles.hint}>미국 달러와 일본 엔은 항상 표시됩니다.</Text>
+            <Text style={styles.hint}>미국 달러와 일본 엔은 항상 표시됩니다. 원화·유로는 선택 사항입니다.</Text>
 
             {optionalCurrencies.map((currency) => (
               <View key={currency.code} style={styles.optionRow}>

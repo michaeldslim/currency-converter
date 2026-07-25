@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { getRateFetchCodes } from '../constants/currencies';
 import { fetchExchangeRates } from '../services/exchangeRateApi';
 import { CurrencyConfig, ExchangeRates } from '../types';
 import { playRefreshSuccessHaptic } from '../utils/haptics';
@@ -41,7 +42,7 @@ export function useExchangeRates({
   const selectedDateRef = useRef<string | null>(null);
 
   const currencyCodes = useMemo(
-    () => enabledCurrencies.map((currency) => currency.code),
+    () => getRateFetchCodes(enabledCurrencies),
     [enabledCurrencies],
   );
   const currencyCodesKey = currencyCodes.join(',');

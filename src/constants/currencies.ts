@@ -1,4 +1,4 @@
-import { CurrencyCode, CurrencyConfig, OptionalCurrencyCode, OptionalCurrencyPreferences } from '../types';
+import { CurrencyCode, CurrencyConfig, ForeignCurrencyCode, OptionalCurrencyCode, OptionalCurrencyPreferences } from '../types';
 
 export const CORE_CURRENCY_CODES: CurrencyCode[] = ['USD', 'JPY'];
 
@@ -33,11 +33,22 @@ export const CURRENCY_REGISTRY: Record<CurrencyCode, CurrencyConfig> = {
     accentColor: '#059669',
     flag: '🇪🇺',
   },
+  KRW: {
+    code: 'KRW',
+    nameKo: '대한민국 원',
+    nameEn: 'Korean Won',
+    symbol: '₩',
+    displayAmount: 1000,
+    displayLabel: '₩1,000',
+    accentColor: '#1E3A8A',
+    flag: '🇰🇷',
+  },
 };
 
-export const OPTIONAL_CURRENCY_CODES: OptionalCurrencyCode[] = ['EUR'];
+export const OPTIONAL_CURRENCY_CODES: OptionalCurrencyCode[] = ['KRW', 'EUR'];
 
 export const DEFAULT_OPTIONAL_PREFERENCES: OptionalCurrencyPreferences = {
+  KRW: false,
   EUR: false,
 };
 
@@ -51,9 +62,32 @@ export function getOptionalCurrencies(): Array<CurrencyConfig & { code: Optional
 }
 
 export function getEnabledCurrencies(preferences: OptionalCurrencyPreferences): CurrencyConfig[] {
-  const core = CORE_CURRENCY_CODES.map((code) => CURRENCY_REGISTRY[code]);
   const optional = OPTIONAL_CURRENCY_CODES.filter((code) => preferences[code]).map(
     (code) => CURRENCY_REGISTRY[code],
   );
-  return [...core, ...optional];
+  const core = CORE_CURRENCY_CODES.map((code) => CURRENCY_REGISTRY[code]);
+  return [...optional, ...core];
+}
+
+export function getRateFetchCodes(enabledCurrencies: CurrencyConfig[]): ForeignCurrencyCode[] {
+  const codes = new Set<ForeignCurrencyCode>(['USD', 'JPY']);
+
+  for (const currency of enabledCurrencies) {
+    if (currency.code !== 'KRW') {
+      codes.add(currency.code);
+    }
+  }
+
+  return [...codes];
+}
+
+export function isCardRatesReady(
+  currencyCode: CurrencyCode,
+  krwPerUnit: Partial<Record<CurrencyCode, number>>,
+): boolean {
+  if (currencyCode === 'KRW') {
+    return krwPerUnit.USD !== undefined && krwPerUnit.JPY !== undefined;
+  }
+
+  return krwPerUnit[currencyCode] !== undefined;
 }

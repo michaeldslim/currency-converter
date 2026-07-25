@@ -2,14 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { AppColors } from '../theme/colors';
-import { CurrencyConfig } from '../types';
-import { CrossConversion, convertCrossForeign, formatCrossAmount } from '../utils/crossRate';
-import { formatKrw, parseAmountInput } from '../utils/formatCurrency';
+import { CurrencyCode, CurrencyConfig } from '../types';
+import { formatCrossAmount, getCardConversionRows } from '../utils/crossRate';
+import { parseAmountInput } from '../utils/formatCurrency';
 
 interface CurrencyCardProps {
   currency: CurrencyConfig;
-  krwPerUnit: number;
-  crossConversion?: CrossConversion;
+  krwPerUnit: Partial<Record<CurrencyCode, number>>;
   colors: AppColors;
   onInputFocus?: () => void;
   inputResetVersion?: number;
@@ -18,7 +17,6 @@ interface CurrencyCardProps {
 export function CurrencyCard({
   currency,
   krwPerUnit,
-  crossConversion,
   colors,
   onInputFocus,
   inputResetVersion = 0,
@@ -30,11 +28,10 @@ export function CurrencyCard({
   }, [currency.code, currency.displayAmount, inputResetVersion]);
 
   const parsedAmount = useMemo(() => parseAmountInput(amountText), [amountText]);
-  const convertedKrw = parsedAmount !== null ? parsedAmount * krwPerUnit : null;
-  const convertedCross =
-    parsedAmount !== null && crossConversion
-      ? convertCrossForeign(parsedAmount, krwPerUnit, crossConversion.krwPerTarget)
-      : null;
+  const conversionRows = useMemo(
+    () => getCardConversionRows(currency.code, parsedAmount, krwPerUnit),
+    [currency.code, parsedAmount, krwPerUnit],
+  );
 
   const handleInputFocus = () => {
     setAmountText('');
@@ -90,24 +87,19 @@ export function CurrencyCard({
           />
         </View>
         <View style={styles.resultsBlock}>
-          <View style={styles.resultRow}>
-            <Text style={[styles.resultLabel, { color: colors.textMuted }]}>원화</Text>
-            <Text style={[styles.krwValue, { color: colors.textPrimary }]}>
-              {convertedKrw !== null ? formatKrw(convertedKrw) : '—'}
-            </Text>
-          </View>
-          {crossConversion ? (
-            <View style={styles.resultRow}>
-              <Text style={[styles.resultLabel, { color: colors.textMuted }]}>
-                {crossConversion.labelKo}
-              </Text>
-              <Text style={[styles.crossValue, { color: colors.textSecondary }]}>
-                {convertedCross !== null
-                  ? formatCrossAmount(crossConversion.targetCode, convertedCross)
-                  : '—'}
+          {conversionRows.map((row) => (
+            <View key={row.labelKo} style={styles.resultRow}>
+              <Text style={[styles.resultLabel, { color: colors.textMuted }]}>{row.labelKo}</Text>
+              <Text
+                style={[
+                  row.emphasized ? styles.primaryValue : styles.secondaryValue,
+                  { color: row.emphasized ? colors.textPrimary : colors.textSecondary },
+                ]}
+              >
+                {row.value !== null ? formatCrossAmount(row.targetCode, row.value) : '—'}
               </Text>
             </View>
-          ) : null}
+          ))}
         </View>
       </View>
     </View>
@@ -202,13 +194,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
-  krwValue: {
+  primaryValue: {
     fontSize: 22,
     fontWeight: '800',
     letterSpacing: -0.5,
     textAlign: 'right',
   },
-  crossValue: {
+  secondaryValue: {
     fontSize: 18,
     fontWeight: '700',
     letterSpacing: -0.3,
