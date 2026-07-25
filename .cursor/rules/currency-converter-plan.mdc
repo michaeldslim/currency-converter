@@ -37,7 +37,7 @@ Bundle ID: `com.mike008.currencyconverter`
 - API: `KRW→foreign`; invert to `krwPerUnit` (`1 / rate`)
 - 교차 환율: `amount × fromKrwPerUnit / toKrwPerUnit` (`crossRate.ts`)
 - **2 cards** (USD, JPY), `CARD_HEIGHT = 192`, `CARD_GAP = 12`
-- Pull-to-refresh reloads current view (today or selected date)
+- Manual refresh via **오늘 환율** button only (no pull-to-refresh)
 
 ### 기준일 & Calendar
 
@@ -46,8 +46,7 @@ Bundle ID: `com.mike008.currencyconverter`
 - Selectable: weekdays only, `MIN_RATE_DATE` (1999-01-04) through today
 - Disabled: weekends, TARGET/ECB holidays, future dates (`rateCalendar.ts`)
 - API: `/latest` (today) or `/{YYYY-MM-DD}` (historical)
-- **오늘 환율** button — visible when viewing a past date; calls `resetToLatest()`
-- **새로고침** banner — when app stays open past midnight (`needsTodayRefresh`); fetches `/latest`
+- **오늘 환율** button — always visible; calls `resetToLatest()` (fetch `/latest`, clear selected date)
 
 ### Safe Area (Android edge-to-edge)
 
@@ -96,12 +95,12 @@ Keep **rate math in service/utils**, not in components.
 - [x] EAS profiles (`development`, `preview`, `production`)
 - [x] USD $1 + JPY ¥100 cards
 - [x] Frankfurter live + historical rates
-- [x] Pull-to-refresh + error retry
+- [x] Error retry
+- [x] 오늘 환율 button (always visible; manual refresh)
 - [x] KRW formatting (`ko-KR`)
 - [x] 기준일 badge (standout style)
 - [x] Historical calendar (`react-native-calendars`)
 - [x] Weekend / holiday / future date blocking
-- [x] 오늘 환율 + midnight 새로고침 banner
 - [x] Safe area (main screen + calendar modal)
 
 | `src/screens/HomeScreen.tsx` | Header, date badge, refresh banner, card stack, last-fetched time |

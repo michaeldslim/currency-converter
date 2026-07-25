@@ -5,7 +5,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -53,7 +52,6 @@ export function HomeScreen() {
     loading,
     refreshing,
     error,
-    needsTodayRefresh,
     refresh,
     selectDate,
     resetToLatest,
@@ -160,16 +158,6 @@ export function HomeScreen() {
           keyboardShouldPersistTaps="handled"
           automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
-          refreshControl={
-            rates ? (
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={() => void refresh()}
-                colors={[colors.accent]}
-                tintColor={colors.accent}
-              />
-            ) : undefined
-          }
         >
           <Pressable style={styles.outsideTapArea} onPress={resetAllCardInputs}>
             <View
@@ -211,34 +199,22 @@ export function HomeScreen() {
                   </Text>
                 </Pressable>
 
-                {selectedDate ? (
-                  <Pressable style={styles.todayButton} onPress={() => void resetToLatest()}>
+                <Pressable
+                  style={styles.todayButton}
+                  onPress={() => void resetToLatest()}
+                  disabled={refreshing}
+                  accessibilityRole="button"
+                  accessibilityLabel="오늘 환율 새로고침"
+                >
+                  {refreshing ? (
+                    <ActivityIndicator color={colors.todayButtonText} size="small" />
+                  ) : (
                     <Text style={styles.todayButtonText}>오늘 환율</Text>
-                  </Pressable>
-                ) : null}
+                  )}
+                </Pressable>
               </View>
             ) : null}
 
-            {!selectedDate && needsTodayRefresh ? (
-              <Pressable
-                style={styles.refreshBanner}
-                onPress={() => void resetToLatest()}
-                disabled={refreshing}
-                accessibilityRole="button"
-                accessibilityLabel="오늘 환율 새로고침"
-              >
-                {refreshing ? (
-                  <ActivityIndicator color={colors.accentText} size="small" />
-                ) : (
-                  <>
-                    <Text style={styles.refreshBannerTitle}>새로고침</Text>
-                    <Text style={styles.refreshBannerHint}>
-                      날짜가 변경되었습니다. 오늘 환율을 불러오세요.
-                    </Text>
-                  </>
-                )}
-              </Pressable>
-            ) : null}
             </View>
 
             {error ? (
@@ -360,28 +336,6 @@ function createStyles(colors: AppColors) {
       fontSize: 14,
       fontWeight: '700',
       color: colors.todayButtonText,
-    },
-    refreshBanner: {
-      marginTop: 12,
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      borderRadius: 14,
-      backgroundColor: colors.refreshBannerBg,
-      borderWidth: 1.5,
-      borderColor: colors.refreshBannerBorder,
-      alignItems: 'center',
-      gap: 4,
-    },
-    refreshBannerTitle: {
-      fontSize: 16,
-      fontWeight: '800',
-      color: colors.accentText,
-    },
-    refreshBannerHint: {
-      fontSize: 13,
-      fontWeight: '500',
-      color: colors.accent,
-      textAlign: 'center',
     },
     scrollContent: {
       paddingHorizontal: 20,
