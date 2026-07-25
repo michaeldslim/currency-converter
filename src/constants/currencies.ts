@@ -62,11 +62,11 @@ export function getOptionalCurrencies(): Array<CurrencyConfig & { code: Optional
 }
 
 export function getEnabledCurrencies(preferences: OptionalCurrencyPreferences): CurrencyConfig[] {
+  const core = CORE_CURRENCY_CODES.map((code) => CURRENCY_REGISTRY[code]);
   const optional = OPTIONAL_CURRENCY_CODES.filter((code) => preferences[code]).map(
     (code) => CURRENCY_REGISTRY[code],
   );
-  const core = CORE_CURRENCY_CODES.map((code) => CURRENCY_REGISTRY[code]);
-  return [...optional, ...core];
+  return [...core, ...optional];
 }
 
 export function getRateFetchCodes(enabledCurrencies: CurrencyConfig[]): ForeignCurrencyCode[] {
