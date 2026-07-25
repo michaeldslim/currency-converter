@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Currency Converter Plan
 
-Android-only React Native + Expo + TypeScript currency viewer. **Base currency: KRW.** Shows rate cards for **USD** and **JPY** by default; **EUR** optional (user toggle).
+Android-only React Native + Expo + TypeScript currency viewer. **Base currency: KRW.** Shows rate cards for **USD** and **JPY** by default; **KRW** and **EUR** optional (user toggle via **표시 통화**).
 
 ## Tech Stack
 
@@ -31,12 +31,13 @@ Bundle ID: `com.mike008.currencyconverter`
 | USD | `$1` | 원화, 엔화 |
 | JPY | `¥100` | 원화, 달러 |
 | KRW | `₩1,000` | 달러, 엔화 (optional toggle) |
+| EUR | `€1` | 원화 (optional toggle) |
 
-- **EUR** — optional via user preference; off by default; 원화만 표시
-- **KRW** — optional via user preference; off by default
+- **Card order** — `USD` → `JPY` → `KRW` → `EUR` (`getEnabledCurrencies()`; core first, then enabled optionals in `OPTIONAL_CURRENCY_CODES` order)
+- **KRW** / **EUR** — optional via **표시 통화** modal; off by default (`AsyncStorage` preference)
 - API: `KRW→foreign`; invert to `krwPerUnit` (`1 / rate`)
 - 교차 환율: `amount × fromKrwPerUnit / toKrwPerUnit` (`crossRate.ts`)
-- **2 cards** (USD, JPY), `CARD_HEIGHT = 192`, `CARD_GAP = 12`
+- **2 cards** by default (USD, JPY); up to 4 when both optionals enabled; `CARD_HEIGHT = 192`, `CARD_GAP = 12`
 - Manual refresh via **오늘 환율** button only (no pull-to-refresh)
 
 ### 기준일 & Calendar
@@ -60,8 +61,9 @@ Bundle ID: `com.mike008.currencyconverter`
 | Path | Role |
 |------|------|
 | `App.tsx` | SafeAreaProvider, StatusBar, HomeScreen entry |
-| `src/types/index.ts` | `CurrencyCode` (`USD` \| `JPY`), `CurrencyConfig`, `ExchangeRates` |
-| `src/constants/currencies.ts` | Card metadata (symbols, colors, display amounts) |
+| `src/types/index.ts` | `CurrencyCode` (`USD` \| `JPY` \| `EUR` \| `KRW`), `CurrencyConfig`, `ExchangeRates` |
+| `src/constants/currencies.ts` | Card metadata, core/optional codes, `getEnabledCurrencies()` |
+| `src/hooks/useEnabledCurrencies.ts` | Optional currency toggles + `AsyncStorage` persistence |
 | `src/services/exchangeRateApi.ts` | Frankfurter fetch (`latest` or `/{date}`) + invert |
 | `src/hooks/useExchangeRates.ts` | Load / refresh / selectDate / resetToLatest / needsTodayRefresh |
 | `src/hooks/useLocalToday.ts` | Local date tracking (60s interval + AppState active) |
@@ -75,6 +77,7 @@ Bundle ID: `com.mike008.currencyconverter`
 | `src/components/SkeletonBone.tsx` | Animated skeleton block |
 | `src/utils/haptics.ts` | Success haptic on refresh |
 | `src/components/RateDateCalendarModal.tsx` | Calendar bottom sheet (Korean locale, themed) |
+| `src/components/CurrencySettingsModal.tsx` | **표시 통화** bottom sheet (KRW/EUR toggles) |
 | `src/screens/HomeScreen.tsx` | Header, date badge, refresh banner, card stack, last-fetched time |
 
 Keep **rate math in service/utils**, not in components.
@@ -103,8 +106,6 @@ Keep **rate math in service/utils**, not in components.
 - [x] Weekend / holiday / future date blocking
 - [x] Safe area (main screen + calendar modal)
 
-| `src/screens/HomeScreen.tsx` | Header, date badge, refresh banner, card stack, last-fetched time |
-
 ## Phase 2 — UX polish ✅
 
 - [x] Skeleton loading on cards (`CurrencyCardSkeleton` + `SkeletonBone`)
@@ -117,6 +118,7 @@ Keep **rate math in service/utils**, not in components.
 
 - [x] Optional EUR card (toggle + `AsyncStorage` preference)
 - [x] Optional KRW card (toggle; 달러·엔화 출력)
+- [x] Card order USD → JPY → KRW → EUR (`getEnabledCurrencies`)
 - [x] Per-card cross rate — USD card: 원화+엔화; JPY card: 원화+달러 (`crossRate.ts`)
 - [ ] Manual amount input (KRW ↔ foreign) — per-card foreign amount → KRW (done); reverse pending
 - [ ] Favorite currency pin order
