@@ -3,11 +3,13 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { AppColors } from '../theme/colors';
 import { CurrencyConfig } from '../types';
+import { CrossConversion, convertCrossForeign, formatCrossAmount } from '../utils/crossRate';
 import { formatKrw, parseAmountInput } from '../utils/formatCurrency';
 
 interface CurrencyCardProps {
   currency: CurrencyConfig;
   krwPerUnit: number;
+  crossConversion?: CrossConversion;
   colors: AppColors;
   onInputFocus?: () => void;
   inputResetVersion?: number;
@@ -16,6 +18,7 @@ interface CurrencyCardProps {
 export function CurrencyCard({
   currency,
   krwPerUnit,
+  crossConversion,
   colors,
   onInputFocus,
   inputResetVersion = 0,
@@ -28,6 +31,10 @@ export function CurrencyCard({
 
   const parsedAmount = useMemo(() => parseAmountInput(amountText), [amountText]);
   const convertedKrw = parsedAmount !== null ? parsedAmount * krwPerUnit : null;
+  const convertedCross =
+    parsedAmount !== null && crossConversion
+      ? convertCrossForeign(parsedAmount, krwPerUnit, crossConversion.krwPerTarget)
+      : null;
 
   const handleInputFocus = () => {
     setAmountText('');
@@ -59,28 +66,49 @@ export function CurrencyCard({
       </View>
 
       <View style={styles.converterBlock}>
-        <TextInput
+        <View
           style={[
-            styles.amountInput,
+            styles.amountInputRow,
             {
-              color: colors.textPrimary,
               backgroundColor: colors.accentSoft,
               borderColor: colors.accentBorder,
             },
           ]}
-          value={amountText}
-          onChangeText={setAmountText}
-          onFocus={handleInputFocus}
-          keyboardType="numeric"
-          inputMode="decimal"
-          textAlign="right"
-          placeholder="0"
-          placeholderTextColor={colors.textMuted}
-          accessibilityLabel={`${currency.nameKo} 금액 입력`}
-        />
-        <Text style={[styles.krwValue, { color: colors.textPrimary }]}>
-          {convertedKrw !== null ? formatKrw(convertedKrw) : '—'}
-        </Text>
+        >
+          <Text style={[styles.inputSymbol, { color: colors.textSecondary }]}>{currency.symbol}</Text>
+          <TextInput
+            style={[styles.amountInput, { color: colors.textPrimary }]}
+            value={amountText}
+            onChangeText={setAmountText}
+            onFocus={handleInputFocus}
+            keyboardType="numeric"
+            inputMode="decimal"
+            textAlign="right"
+            placeholder="0"
+            placeholderTextColor={colors.textMuted}
+            accessibilityLabel={`${currency.nameKo} 금액 입력`}
+          />
+        </View>
+        <View style={styles.resultsBlock}>
+          <View style={styles.resultRow}>
+            <Text style={[styles.resultLabel, { color: colors.textMuted }]}>원화</Text>
+            <Text style={[styles.krwValue, { color: colors.textPrimary }]}>
+              {convertedKrw !== null ? formatKrw(convertedKrw) : '—'}
+            </Text>
+          </View>
+          {crossConversion ? (
+            <View style={styles.resultRow}>
+              <Text style={[styles.resultLabel, { color: colors.textMuted }]}>
+                {crossConversion.labelKo}
+              </Text>
+              <Text style={[styles.crossValue, { color: colors.textSecondary }]}>
+                {convertedCross !== null
+                  ? formatCrossAmount(crossConversion.targetCode, convertedCross)
+                  : '—'}
+              </Text>
+            </View>
+          ) : null}
+        </View>
       </View>
     </View>
   );
@@ -92,7 +120,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderLeftWidth: 5,
     paddingHorizontal: 18,
-    paddingVertical: 12,
+    paddingTop: 10,
+    paddingBottom: 12,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -101,7 +130,7 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 0,
   },
   flag: {
     fontSize: 22,
@@ -122,7 +151,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   currencyName: {
-    marginTop: 2,
+    marginTop: 0,
     fontSize: 12,
   },
   baseAmount: {
@@ -131,21 +160,58 @@ const styles = StyleSheet.create({
   },
   converterBlock: {
     alignItems: 'flex-end',
-    gap: 6,
+    gap: 4,
+    marginTop: -4,
   },
-  amountInput: {
+  resultsBlock: {
+    alignSelf: 'stretch',
+    gap: 2,
+  },
+  resultRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  resultLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    minWidth: 28,
+    textAlign: 'right',
+  },
+  amountInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     minWidth: 132,
-    paddingHorizontal: 12,
+    paddingLeft: 12,
+    paddingRight: 4,
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
+  },
+  inputSymbol: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginRight: 4,
+  },
+  amountInput: {
+    flex: 1,
+    minWidth: 80,
+    paddingVertical: 0,
+    paddingHorizontal: 8,
     fontSize: 18,
     fontWeight: '600',
   },
   krwValue: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '800',
     letterSpacing: -0.5,
+    textAlign: 'right',
+  },
+  crossValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.3,
     textAlign: 'right',
   },
 });

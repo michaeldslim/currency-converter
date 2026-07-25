@@ -35,6 +35,7 @@ export function CurrencyCardSkeleton({ currency, colors }: CurrencyCardSkeletonP
       <View style={styles.converterBlock}>
         <SkeletonBone colors={colors} style={styles.inputBone} />
         <SkeletonBone colors={colors} style={styles.valueBone} />
+        <SkeletonBone colors={colors} style={styles.crossValueBone} />
       </View>
     </View>
   );
@@ -46,7 +47,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderLeftWidth: 5,
     paddingHorizontal: 18,
-    paddingVertical: 12,
+    paddingTop: 10,
+    paddingBottom: 12,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -55,7 +57,7 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 0,
   },
   flag: {
     width: 28,
@@ -87,7 +89,8 @@ const styles = StyleSheet.create({
   },
   converterBlock: {
     alignItems: 'flex-end',
-    gap: 6,
+    gap: 4,
+    marginTop: -4,
   },
   inputBone: {
     width: 132,
@@ -96,6 +99,10 @@ const styles = StyleSheet.create({
   },
   valueBone: {
     width: 120,
-    height: 24,
+    height: 22,
+  },
+  crossValueBone: {
+    width: 96,
+    height: 18,
   },
 });

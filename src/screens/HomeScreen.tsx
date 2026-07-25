@@ -23,9 +23,10 @@ import { useExchangeRates } from '../hooks/useExchangeRates';
 import { useLocalToday } from '../hooks/useLocalToday';
 import { AppColors } from '../theme/colors';
 import { formatFetchedAt, formatRateDate } from '../utils/formatCurrency';
+import { getCrossConversion } from '../utils/crossRate';
 
 const CARD_GAP = 12;
-const CARD_HEIGHT = 168;
+const CARD_HEIGHT = 192;
 const CARD_STACK_MARGIN_TOP = 12;
 const VERTICAL_PADDING = 24;
 
@@ -113,6 +114,9 @@ export function HomeScreen() {
               <CurrencyCard
                 currency={currency}
                 krwPerUnit={krwPerUnit}
+                crossConversion={
+                  rates ? getCrossConversion(currency.code, rates.krwPerUnit) : undefined
+                }
                 colors={colors}
                 inputResetVersion={inputResetVersion}
                 onInputFocus={() => scrollToCardInput(currency.code)}
