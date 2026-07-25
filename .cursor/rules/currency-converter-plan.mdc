@@ -36,6 +36,57 @@ Bundle ID: `com.mike008.currencyconverter`
 - **2 cards** (USD, JPY), `CARD_HEIGHT = 168`, `CARD_GAP = 12`
 - Pull-to-refresh reloads current view (today or selected date)
 
+### View Mode — 보기 모드 세그먼트 (미구현, UI 설계만)
+
+헤더에 2칸 pill 세그먼트로 **원화 기준** / **달러↔엔** 전환. 기본 모드는 `원화 기준` (KRW 중심 정체성 유지).
+
+**배치** — 타이틀 행 아래, 서브타이틀·기준일 배지 위:
+
+```
+환율 변환기                    [표시 통화]
+[ 원화 기준 | 달러↔엔 ]
+기준 통화: … (모드별 문구)
+```
+
+| 모드 | 서브타이틀 | 본문 | 표시 통화 |
+|------|------------|------|-----------|
+| **원화 기준** | `기준 통화: 원화 (KRW)` | USD/JPY/(EUR) 카드 스택 (현재와 동일) | 노출 |
+| **달러↔엔** | `USD ↔ JPY 교차 환율` | 카드 대신 변환 패널 1장 | 숨김 또는 비활성 |
+
+**달러↔엔 패널** — FROM 입력 + 스왑(⇅) + TO 결과, 보조 문구 `1 USD = ¥149.2`:
+
+```
+┌──────────────────────────────────┐
+│  FROM   🇺🇸 USD        [ 1 ]     │
+│              [ ⇅ ]               │
+│  TO     🇯🇵 JPY        ¥149.2   │
+│  1 USD = ¥149.2                  │
+└──────────────────────────────────┘
+```
+
+- 교차 모드 JPY는 **¥1 단위** (원화 모드 `¥100`과 구분)
+- FROM만 편집; 스왑 시 통화·기본값 교체
+- 패널 스타일은 `CurrencyCard`와 톤 맞춤 (`borderRadius 20`, accent)
+- 교차 환율: `krwPerUnit`으로 삼각환산 (`usdPerJpy` 등은 utils에)
+
+**모드 공통 유지** — 기준일 배지, 오늘 환율, 자정 새로고침 배너, pull-to-refresh, 마지막 조회 시각, 스켈레톤, 바깥 탭 시 입력 초기화.
+
+**모드 전환 시** — 키보드 닫기, 입력값 리셋, (선택) 햅틱.
+
+**미결정 (구현 전 검토)**
+
+- 스왑 후 JPY 기본값: `1` vs `100`
+- `viewMode` (`krw` \| `cross`) `AsyncStorage` 영속화 여부
+
+**구현 시 예상 추가 경로**
+
+| Path | Role |
+|------|------|
+| `src/components/ViewModeSegment.tsx` | 2칸 세그먼트 |
+| `src/components/CrossRatePanel.tsx` | USD↔JPY 패널 + 스왑 |
+| `src/utils/crossRate.ts` | 교차 환율 계산 |
+| `src/hooks/useViewMode.ts` | 모드 상태 (+ optional persistence) |
+
 ### 기준일 & Calendar
 
 - **기준일** badge — prominent blue style; tap opens calendar modal
@@ -82,7 +133,7 @@ Keep **rate math in service/utils**, not in components.
 |-------|--------|-------|
 | Phase 1 — MVP | **Done** | Cards, API, calendar, safe area, date rollover refresh |
 | Phase 2 — UX polish | **Done** | Skeleton, haptics, dark mode, icon/splash theme |
-| Phase 3 — Features | Pending | Manual input, favorites, offline cache, rate delta |
+| Phase 3 — Features | Pending | Manual input, view mode segment, favorites, offline cache, rate delta |
 | Phase 4 — Release | Pending | Production EAS build, Play Store, OTA |
 
 ## Phase 1 — MVP ✅
@@ -114,6 +165,7 @@ Keep **rate math in service/utils**, not in components.
 
 - [x] Optional EUR card (toggle + `AsyncStorage` preference)
 - [ ] Manual amount input (KRW ↔ foreign) — per-card foreign amount → KRW (done); reverse pending
+- [ ] View mode segment — `원화 기준` \| `달러↔엔` (see **View Mode** above; design only)
 - [ ] Favorite currency pin order
 - [ ] Offline cache (`AsyncStorage` + stale badge)
 - [ ] Rate change indicator (↑↓ vs previous fetch)
