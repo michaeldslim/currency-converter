@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { useAppLocale } from '../hooks/useAppLocale';
 import { AppColors } from '../theme/colors';
 import { CurrencyCode, CurrencyConfig } from '../types';
+import { getCurrencyName } from '../utils/currencyName';
 import { formatCrossAmount, getCardConversionRows } from '../utils/crossRate';
 import { parseAmountInput } from '../utils/formatCurrency';
 
@@ -21,6 +24,9 @@ export function CurrencyCard({
   onInputFocus,
   inputResetVersion = 0,
 }: CurrencyCardProps) {
+  const { t } = useTranslation();
+  const { locale } = useAppLocale();
+  const currencyName = getCurrencyName(t, currency.code);
   const [amountText, setAmountText] = useState(String(currency.displayAmount));
 
   useEffect(() => {
@@ -58,7 +64,7 @@ export function CurrencyCard({
               {currency.displayLabel}
             </Text>
           </View>
-          <Text style={[styles.currencyName, { color: colors.textMuted }]}>{currency.nameKo}</Text>
+          <Text style={[styles.currencyName, { color: colors.textMuted }]}>{currencyName}</Text>
         </View>
       </View>
 
@@ -83,20 +89,20 @@ export function CurrencyCard({
             textAlign="right"
             placeholder="0"
             placeholderTextColor={colors.textMuted}
-            accessibilityLabel={`${currency.nameKo} 금액 입력`}
+            accessibilityLabel={t('card.amountInputA11y', { name: currencyName })}
           />
         </View>
         <View style={styles.resultsBlock}>
           {conversionRows.map((row) => (
-            <View key={row.labelKo} style={styles.resultRow}>
-              <Text style={[styles.resultLabel, { color: colors.textMuted }]}>{row.labelKo}</Text>
+            <View key={row.labelKey} style={styles.resultRow}>
+              <Text style={[styles.resultLabel, { color: colors.textMuted }]}>{t(row.labelKey)}</Text>
               <Text
                 style={[
                   row.emphasized ? styles.primaryValue : styles.secondaryValue,
                   { color: row.emphasized ? colors.textPrimary : colors.textSecondary },
                 ]}
               >
-                {row.value !== null ? formatCrossAmount(row.targetCode, row.value) : '—'}
+                {row.value !== null ? formatCrossAmount(row.targetCode, row.value, locale) : '—'}
               </Text>
             </View>
           ))}

@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Calendar, LocaleConfig } from 'react-native-calendars';
+import { Calendar } from 'react-native-calendars';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useAppLocale } from '../hooks/useAppLocale';
 import { useAppTheme } from '../hooks/useAppTheme';
+import { applyCalendarLocale } from '../i18n/calendarLocales';
 import { AppColors } from '../theme/colors';
 import { formatRateDate } from '../utils/formatCurrency';
 import {
@@ -12,41 +15,6 @@ import {
   isRateDateSelectable,
   MIN_RATE_DATE,
 } from '../utils/rateCalendar';
-
-LocaleConfig.locales.ko = {
-  monthNames: [
-    '1월',
-    '2월',
-    '3월',
-    '4월',
-    '5월',
-    '6월',
-    '7월',
-    '8월',
-    '9월',
-    '10월',
-    '11월',
-    '12월',
-  ],
-  monthNamesShort: [
-    '1월',
-    '2월',
-    '3월',
-    '4월',
-    '5월',
-    '6월',
-    '7월',
-    '8월',
-    '9월',
-    '10월',
-    '11월',
-    '12월',
-  ],
-  dayNames: ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'],
-  dayNamesShort: ['일', '월', '화', '수', '목', '금', '토'],
-  today: '오늘',
-};
-LocaleConfig.defaultLocale = 'ko';
 
 interface RateDateCalendarModalProps {
   visible: boolean;
@@ -68,6 +36,8 @@ export function RateDateCalendarModal({
   onClose,
   onSelectDate,
 }: RateDateCalendarModalProps) {
+  const { t } = useTranslation();
+  const { language, locale } = useAppLocale();
   const { colors, isDark } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const today = getTodayIso();
@@ -75,6 +45,10 @@ export function RateDateCalendarModal({
   const focusMonth = focusDate.slice(0, 7);
   const [visibleMonth, setVisibleMonth] = useState(focusMonth);
   const [calendarKey, setCalendarKey] = useState(0);
+
+  useEffect(() => {
+    applyCalendarLocale(language);
+  }, [language]);
 
   useEffect(() => {
     if (!visible) {
@@ -101,18 +75,16 @@ export function RateDateCalendarModal({
         <SafeAreaView style={styles.sheetSafeArea} edges={['bottom']}>
           <View style={styles.sheet}>
             <View style={styles.header}>
-              <Text style={styles.title}>기준일 선택</Text>
+              <Text style={styles.title}>{t('calendar.title')}</Text>
               <Pressable onPress={onClose} hitSlop={8}>
-                <Text style={styles.closeButton}>닫기</Text>
+                <Text style={styles.closeButton}>{t('common.close')}</Text>
               </Pressable>
             </View>
 
-            <Text style={styles.hint}>
-              주말, 공휴일, 미래 날짜는 선택할 수 없습니다.
-            </Text>
+            <Text style={styles.hint}>{t('calendar.hint')}</Text>
 
             <Calendar
-              key={calendarKey}
+              key={`${calendarKey}-${language}`}
               current={focusDate}
               minDate={MIN_RATE_DATE}
               maxDate={today}
@@ -152,10 +124,10 @@ export function RateDateCalendarModal({
 
             {selectedDate ? (
               <Text style={styles.selectedLabel}>
-                선택된 기준일: {formatRateDate(selectedDate)}
+                {t('calendar.selectedDate', { date: formatRateDate(selectedDate, locale) })}
               </Text>
             ) : (
-              <Text style={styles.selectedLabel}>선택된 기준일: 오늘 환율</Text>
+              <Text style={styles.selectedLabel}>{t('calendar.selectedToday')}</Text>
             )}
           </View>
         </SafeAreaView>

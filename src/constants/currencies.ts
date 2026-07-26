@@ -5,8 +5,6 @@ export const CORE_CURRENCY_CODES: CurrencyCode[] = ['USD', 'JPY'];
 export const CURRENCY_REGISTRY: Record<CurrencyCode, CurrencyConfig> = {
   USD: {
     code: 'USD',
-    nameKo: '미국 달러',
-    nameEn: 'US Dollar',
     symbol: '$',
     displayAmount: 1,
     displayLabel: '$1',
@@ -15,8 +13,6 @@ export const CURRENCY_REGISTRY: Record<CurrencyCode, CurrencyConfig> = {
   },
   JPY: {
     code: 'JPY',
-    nameKo: '일본 엔',
-    nameEn: 'Japanese Yen',
     symbol: '¥',
     displayAmount: 100,
     displayLabel: '¥100',
@@ -25,8 +21,6 @@ export const CURRENCY_REGISTRY: Record<CurrencyCode, CurrencyConfig> = {
   },
   EUR: {
     code: 'EUR',
-    nameKo: '유로',
-    nameEn: 'Euro',
     symbol: '€',
     displayAmount: 1,
     displayLabel: '€1',
@@ -35,8 +29,6 @@ export const CURRENCY_REGISTRY: Record<CurrencyCode, CurrencyConfig> = {
   },
   KRW: {
     code: 'KRW',
-    nameKo: '대한민국 원',
-    nameEn: 'Korean Won',
     symbol: '₩',
     displayAmount: 1000,
     displayLabel: '₩1,000',

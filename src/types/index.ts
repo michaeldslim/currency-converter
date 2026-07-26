@@ -6,8 +6,6 @@ export type OptionalCurrencyCode = 'EUR' | 'KRW';
 
 export interface CurrencyConfig {
   code: CurrencyCode;
-  nameKo: string;
-  nameEn: string;
   symbol: string;
   /** Foreign-currency units shown on the card (e.g. 1 for $1, 100 for ¥100). */
   displayAmount: number;

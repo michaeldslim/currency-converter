@@ -7,6 +7,21 @@ interface FrankfurterResponse {
   rates: Partial<Record<ForeignCurrencyCode, number>>;
 }
 
+export type ExchangeRateErrorKey =
+  | 'errors.noCurrencies'
+  | 'errors.apiRequestFailed'
+  | 'errors.missingRate';
+
+export class ExchangeRateError extends Error {
+  constructor(
+    readonly key: ExchangeRateErrorKey,
+    readonly params?: Record<string, string | number>,
+  ) {
+    super(key);
+    this.name = 'ExchangeRateError';
+  }
+}
+
 function buildApiUrl(currencyCodes: ForeignCurrencyCode[], date?: string): string {
   const symbols = currencyCodes.join(',');
   if (date) {
@@ -20,13 +35,13 @@ export async function fetchExchangeRates(
   date?: string,
 ): Promise<ExchangeRates> {
   if (currencyCodes.length === 0) {
-    throw new Error('표시할 통화가 없습니다.');
+    throw new ExchangeRateError('errors.noCurrencies');
   }
 
   const response = await fetch(buildApiUrl(currencyCodes, date));
 
   if (!response.ok) {
-    throw new Error(`환율 API 요청 실패 (${response.status})`);
+    throw new ExchangeRateError('errors.apiRequestFailed', { status: response.status });
   }
 
   const data = (await response.json()) as FrankfurterResponse;
@@ -36,7 +51,7 @@ export async function fetchExchangeRates(
     const krwToForeign = data.rates[code];
 
     if (!krwToForeign || krwToForeign <= 0) {
-      throw new Error(`${code} 환율 데이터를 불러오지 못했습니다.`);
+      throw new ExchangeRateError('errors.missingRate', { code });
     }
 
     krwPerUnit[code] = 1 / krwToForeign;

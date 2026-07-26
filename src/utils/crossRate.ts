@@ -3,7 +3,7 @@ import { CurrencyCode } from '../types';
 import { formatKrw } from './formatCurrency';
 
 export interface CardConversionRow {
-  labelKo: string;
+  labelKey: string;
   targetCode: CurrencyCode;
   value: number | null;
   emphasized: boolean;
@@ -23,28 +23,28 @@ export function convertKrwToForeign(krwAmount: number, krwPerUnit: number): numb
   return krwAmount / krwPerUnit;
 }
 
-export function formatUsd(value: number): string {
+export function formatUsd(value: number, locale = 'ko-KR'): string {
   const fractionDigits = value >= 1 ? 2 : 4;
-  return `$ ${value.toLocaleString('ko-KR', {
+  return `$ ${value.toLocaleString(locale, {
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits,
   })}`;
 }
 
-export function formatJpy(value: number): string {
-  return `¥ ${Math.round(value).toLocaleString('ko-KR')}`;
+export function formatJpy(value: number, locale = 'ko-KR'): string {
+  return `¥ ${Math.round(value).toLocaleString(locale)}`;
 }
 
-export function formatCrossAmount(code: CurrencyCode, value: number): string {
+export function formatCrossAmount(code: CurrencyCode, value: number, locale = 'ko-KR'): string {
   switch (code) {
     case 'KRW':
-      return formatKrw(value);
+      return formatKrw(value, locale);
     case 'USD':
-      return formatUsd(value);
+      return formatUsd(value, locale);
     case 'JPY':
-      return formatJpy(value);
+      return formatJpy(value, locale);
     case 'EUR':
-      return `€ ${value.toLocaleString('ko-KR', {
+      return `€ ${value.toLocaleString(locale, {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })}`;
@@ -52,12 +52,12 @@ export function formatCrossAmount(code: CurrencyCode, value: number): string {
 }
 
 function buildRow(
-  labelKo: string,
+  labelKey: string,
   targetCode: CurrencyCode,
   value: number | null,
   emphasized: boolean,
 ): CardConversionRow {
-  return { labelKo, targetCode, value, emphasized };
+  return { labelKey, targetCode, value, emphasized };
 }
 
 export function getCardConversionRows(
@@ -74,13 +74,13 @@ export function getCardConversionRows(
       const rows: CardConversionRow[] = [];
       if (usdRate !== undefined) {
         rows.push(
-          buildRow('원화', 'KRW', amount !== null ? amount * usdRate : null, true),
+          buildRow('row.krw', 'KRW', amount !== null ? amount * usdRate : null, true),
         );
       }
       if (usdRate !== undefined && jpyRate !== undefined) {
         rows.push(
           buildRow(
-            '엔화',
+            'row.jpy',
             'JPY',
             amount !== null ? convertCrossForeign(amount, usdRate, jpyRate) : null,
             false,
@@ -93,13 +93,13 @@ export function getCardConversionRows(
       const rows: CardConversionRow[] = [];
       if (jpyRate !== undefined) {
         rows.push(
-          buildRow('원화', 'KRW', amount !== null ? amount * jpyRate : null, true),
+          buildRow('row.krw', 'KRW', amount !== null ? amount * jpyRate : null, true),
         );
       }
       if (usdRate !== undefined && jpyRate !== undefined) {
         rows.push(
           buildRow(
-            '달러',
+            'row.usd',
             'USD',
             amount !== null ? convertCrossForeign(amount, jpyRate, usdRate) : null,
             false,
@@ -113,7 +113,7 @@ export function getCardConversionRows(
       if (usdRate !== undefined) {
         rows.push(
           buildRow(
-            '달러',
+            'row.usd',
             'USD',
             amount !== null ? convertKrwToForeign(amount, usdRate) : null,
             true,
@@ -123,7 +123,7 @@ export function getCardConversionRows(
       if (jpyRate !== undefined) {
         rows.push(
           buildRow(
-            '엔화',
+            'row.jpy',
             'JPY',
             amount !== null ? convertKrwToForeign(amount, jpyRate) : null,
             false,
@@ -137,7 +137,7 @@ export function getCardConversionRows(
         return [];
       }
       return [
-        buildRow('원화', 'KRW', amount !== null ? amount * eurRate : null, true),
+        buildRow('row.krw', 'KRW', amount !== null ? amount * eurRate : null, true),
       ];
   }
 }

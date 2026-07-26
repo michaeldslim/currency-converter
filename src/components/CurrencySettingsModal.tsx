@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -6,6 +7,7 @@ import { getOptionalCurrencies } from '../constants/currencies';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { AppColors } from '../theme/colors';
 import { OptionalCurrencyCode, OptionalCurrencyPreferences } from '../types';
+import { getCurrencyName } from '../utils/currencyName';
 
 interface CurrencySettingsModalProps {
   visible: boolean;
@@ -20,6 +22,7 @@ export function CurrencySettingsModal({
   onClose,
   onToggleOptionalCurrency,
 }: CurrencySettingsModalProps) {
+  const { t } = useTranslation();
   const { colors, isDark } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const optionalCurrencies = getOptionalCurrencies();
@@ -30,35 +33,39 @@ export function CurrencySettingsModal({
         <SafeAreaView style={styles.sheetSafeArea} edges={['bottom']}>
           <View style={styles.sheet}>
             <View style={styles.header}>
-              <Text style={styles.title}>표시 통화</Text>
+              <Text style={styles.title}>{t('settings.title')}</Text>
               <Pressable onPress={onClose} hitSlop={8}>
-                <Text style={styles.closeButton}>닫기</Text>
+                <Text style={styles.closeButton}>{t('common.close')}</Text>
               </Pressable>
             </View>
 
-            <Text style={styles.hint}>미국 달러와 일본 엔은 항상 표시됩니다. 원화·유로는 선택 사항입니다.</Text>
+            <Text style={styles.hint}>{t('settings.optionalHint')}</Text>
 
-            {optionalCurrencies.map((currency) => (
-              <View key={currency.code} style={styles.optionRow}>
-                <View style={styles.optionInfo}>
-                  <Text style={styles.optionFlag}>{currency.flag}</Text>
-                  <View style={styles.optionTextBlock}>
-                    <Text style={styles.optionName}>{currency.nameKo}</Text>
-                    <Text style={styles.optionLabel}>{currency.displayLabel}</Text>
+            {optionalCurrencies.map((currency) => {
+              const currencyName = getCurrencyName(t, currency.code);
+
+              return (
+                <View key={currency.code} style={styles.optionRow}>
+                  <View style={styles.optionInfo}>
+                    <Text style={styles.optionFlag}>{currency.flag}</Text>
+                    <View style={styles.optionTextBlock}>
+                      <Text style={styles.optionName}>{currencyName}</Text>
+                      <Text style={styles.optionLabel}>{currency.displayLabel}</Text>
+                    </View>
                   </View>
+                  <Switch
+                    value={optionalPreferences[currency.code]}
+                    onValueChange={(enabled) => onToggleOptionalCurrency(currency.code, enabled)}
+                    trackColor={{
+                      false: colors.cardBorder === 'transparent' ? '#CBD5E1' : colors.cardBorder,
+                      true: colors.accent,
+                    }}
+                    thumbColor={isDark ? '#F8FAFC' : '#FFFFFF'}
+                    accessibilityLabel={t('settings.showCurrencyA11y', { name: currencyName })}
+                  />
                 </View>
-                <Switch
-                  value={optionalPreferences[currency.code]}
-                  onValueChange={(enabled) => onToggleOptionalCurrency(currency.code, enabled)}
-                  trackColor={{
-                    false: colors.cardBorder === 'transparent' ? '#CBD5E1' : colors.cardBorder,
-                    true: colors.accent,
-                  }}
-                  thumbColor={isDark ? '#F8FAFC' : '#FFFFFF'}
-                  accessibilityLabel={`${currency.nameKo} 표시`}
-                />
-              </View>
-            ))}
+              );
+            })}
           </View>
         </SafeAreaView>
       </View>

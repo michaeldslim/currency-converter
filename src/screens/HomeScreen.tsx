@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Keyboard,
@@ -16,6 +17,7 @@ import { CurrencyCard } from '../components/CurrencyCard';
 import { CurrencyCardSkeleton } from '../components/CurrencyCardSkeleton';
 import { CurrencySettingsModal } from '../components/CurrencySettingsModal';
 import { RateDateCalendarModal } from '../components/RateDateCalendarModal';
+import { useAppLocale } from '../hooks/useAppLocale';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { useEnabledCurrencies } from '../hooks/useEnabledCurrencies';
 import { useExchangeRates } from '../hooks/useExchangeRates';
@@ -30,6 +32,8 @@ const CARD_STACK_MARGIN_TOP = 12;
 const VERTICAL_PADDING = 24;
 
 export function HomeScreen() {
+  const { t } = useTranslation();
+  const { locale } = useAppLocale();
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const scrollRef = useRef<ScrollView>(null);
@@ -167,20 +171,20 @@ export function HomeScreen() {
               }}
             >
             <View style={styles.titleRow}>
-              <Text style={styles.title}>환율 변환기</Text>
+              <Text style={styles.title}>{t('home.title')}</Text>
               <Pressable
                 style={styles.settingsButton}
                 onPress={() => setSettingsVisible(true)}
                 accessibilityRole="button"
-                accessibilityLabel="표시 통화 설정"
+                accessibilityLabel={t('home.displayCurrenciesA11y')}
               >
-                <Text style={styles.settingsButtonText}>표시 통화</Text>
+                <Text style={styles.settingsButtonText}>{t('home.displayCurrencies')}</Text>
               </Pressable>
             </View>
-            <Text style={styles.subtitle}>기준 통화: 원화 (KRW)</Text>
+            <Text style={styles.subtitle}>{t('home.subtitle')}</Text>
             {lastFetchedAt ? (
               <Text style={styles.fetchedAt}>
-                마지막 조회: {formatFetchedAt(lastFetchedAt)}
+                {t('home.lastFetched', { time: formatFetchedAt(lastFetchedAt, locale) })}
               </Text>
             ) : null}
 
@@ -190,12 +194,12 @@ export function HomeScreen() {
                   style={styles.dateBadge}
                   onPress={() => setCalendarVisible(true)}
                   accessibilityRole="button"
-                  accessibilityLabel="기준일 선택"
+                  accessibilityLabel={t('home.rateDateSelectA11y')}
                 >
-                  <Text style={styles.dateLabel}>기준일</Text>
-                  <Text style={styles.dateValue}>{formatRateDate(rates.date)}</Text>
+                  <Text style={styles.dateLabel}>{t('home.rateDateLabel')}</Text>
+                  <Text style={styles.dateValue}>{formatRateDate(rates.date, locale)}</Text>
                   <Text style={styles.dateHint}>
-                    {showStaleRateHint ? '오늘 고시 전 · 전 영업일 환율' : '탭하여 날짜 변경'}
+                    {showStaleRateHint ? t('home.staleRateHint') : t('home.tapToChangeDate')}
                   </Text>
                 </Pressable>
 
@@ -204,12 +208,12 @@ export function HomeScreen() {
                   onPress={() => void resetToLatest()}
                   disabled={refreshing}
                   accessibilityRole="button"
-                  accessibilityLabel="오늘 환율 새로고침"
+                  accessibilityLabel={t('home.todayRatesRefreshA11y')}
                 >
                   {refreshing ? (
                     <ActivityIndicator color={colors.todayButtonText} size="small" />
                   ) : (
-                    <Text style={styles.todayButtonText}>오늘 환율</Text>
+                    <Text style={styles.todayButtonText}>{t('home.todayRates')}</Text>
                   )}
                 </Pressable>
               </View>
@@ -221,13 +225,13 @@ export function HomeScreen() {
               <View style={styles.errorBox}>
                 <Text style={styles.errorText}>{error}</Text>
                 <Pressable style={styles.retryButton} onPress={() => void refresh()}>
-                  <Text style={styles.retryButtonText}>다시 시도</Text>
+                  <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
                 </Pressable>
               </View>
             ) : null}
 
             {loading && !rates ? (
-              <Text style={styles.loadingHint}>환율을 불러오는 중...</Text>
+              <Text style={styles.loadingHint}>{t('home.loading')}</Text>
             ) : null}
 
             {cardStack}

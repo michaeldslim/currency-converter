@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { getRateFetchCodes } from '../constants/currencies';
-import { fetchExchangeRates } from '../services/exchangeRateApi';
+import i18n from '../i18n';
+import { ExchangeRateError, fetchExchangeRates } from '../services/exchangeRateApi';
 import { CurrencyConfig, ExchangeRates } from '../types';
 import { playRefreshSuccessHaptic } from '../utils/haptics';
 import { getTodayIso, isRateDateSelectable, resolveLatestFetchDate } from '../utils/rateCalendar';
@@ -73,7 +74,11 @@ export function useExchangeRates({
           void playRefreshSuccessHaptic();
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : '환율을 불러오지 못했습니다.');
+        if (err instanceof ExchangeRateError) {
+          setError(i18n.t(err.key, err.params));
+        } else {
+          setError(i18n.t('errors.fetchFailed'));
+        }
       } finally {
         setLoading(false);
         setRefreshing(false);
