@@ -1,0 +1,596 @@
+---
+description: Google Play Store 출시 및 EAS 로컬 빌드 가이드 (환율 변환기)
+globs: app.json,eas.json,android/**/*
+alwaysApply: false
+---
+
+# Play Store 출시 & EAS 로컬 빌드 플랜
+
+**앱:** 환율 변환기 (`com.mike008.currencyconverter`)  
+**현재 버전:** `1.4.0` (`app.json` `version` + `runtimeVersion`)  
+**플랫폼:** Android only  
+**관련 Phase:** `currency-converter-plan.mdc` → Phase 4 — Release
+
+### 준비 완료 (확인됨)
+
+| 항목 | 상태 |
+|------|------|
+| **Google Play Developer 계정** | ✅ 보유 |
+| **개인정보처리방침 URL (Play Console)** | ✅ [currency-converter-privacy.txt](https://michaeldslim.github.io/privacy/currency-converter-privacy.txt) |
+| **공용 Terms + Privacy** | [privacy.txt](https://michaeldslim.github.io/privacy/privacy.txt) (다른 앱용) |
+| **개발자 연락처** | `dongseok.lim@gmail.com` (정책 페이지 기준) |
+
+Play Console **앱 콘텐츠 → 개인정보처리방침** 및 스토어 listing에 위 URL을 그대로 입력한다.
+
+---
+
+## 목차
+
+1. [빌드 방식 비교](#1-빌드-방식-비교)
+2. [사전 준비 (한 번만)](#2-사전-준비-한-번만)
+3. [EAS 로컬 빌드 상세](#3-eas-로컬-빌드-상세)
+4. [EAS 클라우드 빌드](#4-eas-클라우드-빌드)
+5. [Google Play Console 설정](#5-google-play-console-설정)
+6. [스토어 등록정보 (Listing)](#6-스토어-등록정보-listing)
+7. [AAB 업로드 & 출시 트랙](#7-aab-업로드--출시-트랙)
+8. [EAS Submit (자동 업로드)](#8-eas-submit-자동-업로드)
+9. [출시 후: EAS Update (OTA)](#9-출시-후-eas-update-ota)
+10. [체크리스트 & 트러블슈팅](#10-체크리스트--트러블슈팅)
+
+---
+
+## 1. 빌드 방식 비교
+
+이 프로젝트에서 쓸 수 있는 Android 빌드 경로는 **4가지**다. 목적이 다르므로 혼동하지 말 것.
+
+| 방식 | 명령 | 산출물 | 용도 |
+|------|------|--------|------|
+| **Expo 개발 빌드** | `npx expo run:android` | debug APK (로컬) | 일상 개발, 에뮬레이터/실기기 테스트 |
+| **Gradle 직접 빌드** | `cd android && ./gradlew bundleRelease` | AAB (로컬) | EAS 없이 순수 네이티브 빌드; 서명 키 직접 관리 |
+| **EAS 클라우드 빌드** | `eas build -p android --profile production` | AAB (클라우드) | **Play Store 제출용 권장** — 서명·환경 일관 |
+| **EAS 로컬 빌드** | `eas build -p android --profile production --local` | AAB (로컬) | 클라우드 실패 디버깅, 회사 정책상 로컬만 허용 시 |
+
+### 핵심 차이
+
+```
+expo run:android
+  → Metro + debug 서명. Play Store 제출 불가.
+
+eas build --local
+  → EAS가 클라우드와 동일한 빌드 파이프라인을 내 PC에서 실행.
+  → credentials(업로드 키)는 EAS에서 가져오거나 로컬 keystore 사용.
+  → 산출물: release AAB (production 프로필 기준).
+
+eas build (클라우드)
+  → Expo 서버(GCP Linux)에서 빌드. 로컬 Android SDK 불필요.
+```
+
+**Play Store에는 AAB만** 올린다. APK는 내부 테스트용(에뮬레이터·직접 설치)에만 쓴다.
+
+---
+
+## 2. 사전 준비 (한 번만)
+
+### 2.1 계정
+
+| 항목 | 상태 / 내용 |
+|------|-------------|
+| **Google Play Developer** | ✅ **보유** — [Play Console](https://play.google.com/console) 바로 사용 |
+| **개인정보처리방침 URL** | ✅ [currency-converter-privacy.txt](https://michaeldslim.github.io/privacy/currency-converter-privacy.txt) |
+| **Expo 계정** | `mike008` (이미 `app.json` `owner` 설정됨) |
+| **EAS CLI** | `npm install -g eas-cli` 후 `eas login` |
+
+### 2.2 로컬 개발 환경 (로컬 빌드 / `expo run:android` 시)
+
+macOS 기준:
+
+```bash
+# 필수
+brew install --cask android-studio   # 또는 공식 설치
+# Android Studio → SDK Manager:
+#   - Android SDK Platform (targetSdk와 맞는 버전)
+#   - Android SDK Build-Tools
+#   - Android NDK (EAS 로컬 빌드 시 필요할 수 있음)
+
+# ~/.zshrc 등에 추가
+export ANDROID_HOME=$HOME/Library/Android/sdk
+export PATH=$PATH:$ANDROID_HOME/platform-tools
+export PATH=$PATH:$ANDROID_HOME/tools
+
+# Java (Android Studio 번들 JDK 권장)
+export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+```
+
+확인:
+
+```bash
+echo $ANDROID_HOME    # 비어 있으면 안 됨
+java -version
+adb devices
+```
+
+### 2.3 Android 서명 키 (Upload Key)
+
+Play App Signing 사용 시:
+
+- **Google이 앱 서명 키**를 보관 (최종 사용자에게 배포되는 서명)
+- 개발자는 **업로드 키**로 AAB에 서명 후 Play Console에 업로드
+
+EAS가 키를 생성·관리하는 방법 (권장):
+
+```bash
+eas credentials --platform android
+# production 프로필 선택 → Keystore 설정
+```
+
+처음 `eas build` 시 CLI가 keystore 생성을 제안할 수 있다. **keystore 파일과 비밀번호는 반드시 백업** (분실 시 동일 패키지로 업데이트 불가).
+
+### 2.4 `eas.json` 프로필 정리 (현재 상태 점검)
+
+현재 `eas.json` (gitignore됨, 로컬에만 존재):
+
+```json
+{
+  "build": {
+    "development": { "developmentClient": true, "distribution": "internal", "channel": "development" },
+    "production": { "distribution": "internal", "channel": "production" }
+  }
+}
+```
+
+**Play Store 제출 전 권장 변경:**
+
+```json
+{
+  "cli": { "version": ">= 16.0.0" },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development"
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "channel": "preview"
+    },
+    "production": {
+      "distribution": "store",
+      "channel": "production",
+      "autoIncrement": true
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "draft"
+      }
+    }
+  }
+}
+```
+
+| 필드 | 설명 |
+|------|------|
+| `distribution: "store"` | Play Store용 AAB 생성 |
+| `buildType: "apk"` (preview) | 실기기 sideload 테스트용 |
+| `autoIncrement: true` | `versionCode` 자동 증가 (매 업로드마다 필수) |
+| `submit.production` | `eas submit` 기본값 (internal 트랙, draft) |
+
+`version` (`1.4.0`)은 `app.json`에서 수동 관리. `versionCode`는 EAS `autoIncrement` 또는 `android/app/build.gradle` `versionCode`로 관리.
+
+---
+
+## 3. EAS 로컬 빌드 상세
+
+### 3.1 무엇을 하는가
+
+`eas build --local`은 **EAS 클라우드와 동일한 빌드 스크립트**를 로컬 머신에서 실행한다.
+
+- 프로젝트를 임시 작업 디렉터리에 복사
+- `expo prebuild` / Gradle `bundleRelease` 등 클라우드와 동일 단계 수행
+- 완료 후 **AAB 파일**을 현재 디렉터리(또는 지정 폴더)에 복사
+
+EAS 서버와 통신하는 부분:
+
+- 프로젝트 `@mike008/currencyconverter` 존재 확인
+- (managed credentials 사용 시) keystore 다운로드
+
+### 3.2 언제 쓰는가
+
+| 상황 | 로컬 빌드 |
+|------|-----------|
+| 클라우드 빌드만 실패하고 원인 불명 | ✅ 디버깅용 |
+| 빌드 시간·대기 줄이기 (로컬 머신이 충분히 빠를 때) | ✅ |
+| 일상 개발·핫리로드 | ❌ → `expo run:android` |
+| Android SDK 없이 빌드 | ❌ → 클라우드 `eas build` |
+| Play Store 첫 출시 (가장 단순한 경로) | △ 가능하나 **클라우드 빌드 권장** |
+
+### 3.3 명령어 (이 프로젝트)
+
+```bash
+# 프로젝트 루트에서
+cd /Users/mikelim/Github/currency-converter
+
+# 의존성·타입체크
+npm install
+npm run typecheck
+
+# production AAB 로컬 빌드
+eas build --platform android --profile production --local
+
+# 내부 테스트 APK 로컬 빌드 (preview 프로필 추가 후)
+eas build --platform android --profile preview --local
+```
+
+빌드 성공 시 터미널에 AAB 경로가 출력된다.  
+이 프로젝트 `android/app/build.gradle`에는 AAB 이름 변경 태스크가 있어 `CurrencyConverter-app-release.aab` 형태로 나올 수 있다.
+
+### 3.4 로컬 빌드 디버깅 환경 변수
+
+```bash
+# 빌드 후 임시 폴더 유지 (로그·Gradle 출력 확인)
+EAS_LOCAL_BUILD_SKIP_CLEANUP=1 eas build -p android --profile production --local
+
+# 작업 디렉터리 지정
+EAS_LOCAL_BUILD_WORKINGDIR=/tmp/eas-local-build eas build -p android --profile production --local
+
+# 산출물 복사 위치
+EAS_LOCAL_BUILD_ARTIFACTS_DIR=./build-artifacts eas build -p android --profile production --local
+```
+
+### 3.5 로컬 빌드 제한사항 (공식)
+
+| 제한 | 내용 |
+|------|------|
+| 플랫폼 | `--platform android` 또는 `ios` **하나씩** (`all` 불가) |
+| `eas.json` 무시 필드 | `node`, `yarn`, `ndk`, `image` 등 버전 오버라이드 |
+| 캐시 | 클라우드 캐시 없음 — 매번 풀 빌드에 가깝다 |
+| Secret env | EAS Secret 환경변수 미지원 → 로컬 셸에 직접 export |
+| OS | macOS / Linux 공식 지원 (Windows는 WSL 비공식) |
+| 도구 | Node, Android SDK, NDK, Java — **직접 설치·유지** |
+
+### 3.6 `expo run:android` vs `eas build --local`
+
+| | `expo run:android` | `eas build --local` |
+|--|-------------------|---------------------|
+| 빌드 타입 | **Debug** | **Release** (프로필에 따름) |
+| JS 번들 | dev / fast refresh | production 번들 (`export:embed`) |
+| 서명 | debug keystore | release / upload keystore |
+| Play Store | ❌ | ✅ (production 프로필) |
+| 속도 | 빠름 (증분) | 느림 (풀 release 빌드) |
+
+### 3.7 로컬 빌드 흐름 (다이어그램)
+
+```mermaid
+flowchart TD
+    A[eas build --local] --> B[EAS CLI: 프로젝트 압축·임시 디렉터리]
+    B --> C{Credentials}
+    C -->|managed| D[EAS에서 keystore 다운로드]
+    C -->|local| E[로컬 keystore 사용]
+    D --> F[prebuild / Gradle bundleRelease]
+    E --> F
+    F --> G{성공?}
+    G -->|Yes| H[AAB → artifacts 디렉터리]
+    G -->|No| I[EAS_LOCAL_BUILD_SKIP_CLEANUP=1 로 재현·로그 확인]
+    H --> J[Play Console 업로드 또는 eas submit]
+```
+
+### 3.8 자주 나는 로컬 빌드 오류
+
+| 오류 | 해결 |
+|------|------|
+| `SDK location not found` | `ANDROID_HOME` 설정, `android/local.properties`에 `sdk.dir=...` |
+| `JAVA_HOME` | Android Studio JBR 경로 지정 |
+| 클라우드는 되는데 로컬만 실패 | NDK 버전, CMake, 디스크 공간 확인; `EAS_LOCAL_BUILD_SKIP_CLEANUP=1`로 Gradle 로그 확인 |
+| `expo run:android`는 되는데 `eas build --local` 실패 | release 서명·proguard·번들 경로 차이 — release 빌드 로그 비교 |
+
+---
+
+## 4. EAS 클라우드 빌드
+
+로컬 SDK 없이 Play Store용 AAB를 만드는 **기본 경로**.
+
+```bash
+eas build --platform android --profile production
+```
+
+빌드 완료 후:
+
+- [expo.dev](https://expo.dev) → 프로젝트 → Builds에서 AAB 다운로드
+- 또는 `eas build:list` / 빌드 URL에서 직접 다운로드
+
+빌드 + 제출 한 번에:
+
+```bash
+eas build -p android --profile production --auto-submit
+```
+
+(`submit` 프로필·Google Service Account 설정 필요 — [§8](#8-eas-submit-자동-업로드))
+
+---
+
+## 5. Google Play Console 설정
+
+### 5.1 앱 생성
+
+1. [Google Play Console](https://play.google.com/console) 로그인
+2. **만들기 → 앱** (Create app)
+3. 입력:
+   - **앱 이름:** `환율 변환기` (스토어 표시명; `app.json` `name`과 동일 가능)
+   - **기본 언어:** 한국어
+   - **앱 / 게임:** 앱
+   - **유료 / 무료:** 무료
+4. 정책·미국 수출 규정 등 체크박스 동의
+
+### 5.2 대시보드 필수 작업 (첫 출시 전)
+
+Play Console 왼쪽 **시작하기** 또는 **정책 상태**에서 아래를 모두 완료해야 프로덕션 출시 가능.
+
+| 작업 | 이 앱에서의 내용 |
+|------|------------------|
+| **앱 액세스 권한** | 전체 기능 로그인 없이 사용 → "제한 없음" |
+| **광고** | 광고 없음 |
+| **콘텐츠 등급** | 설문 작성 (금융 도구, 폭력·성인 콘텐츠 없음 → 보통 **전체이용가**) |
+| **타겟층** | 13세 이상 등 연령대 선택 |
+| **데이터 보안** | [§5.4](#54-데이터-보안-이-앱) 참고 |
+| **앱 카테고리** | **금융** 또는 **도구** |
+| **연락처** | `dongseok.lim@gmail.com` |
+| **개인정보처리방침 URL** | [currency-converter-privacy.txt](https://michaeldslim.github.io/privacy/currency-converter-privacy.txt) |
+
+### 5.3 Play App Signing
+
+첫 AAB 업로드 시:
+
+1. **Google Play 앱 서명 사용** 선택 (권장·사실상 필수)
+2. 업로드 키로 서명된 AAB 제출
+3. Google이 앱 서명 키로 재서명해 사용자에게 배포
+
+EAS managed credentials 사용 시 업로드 키는 EAS가 관리. Play Console → **설정 → 앱 서명**에서 업로드 키 인증서 SHA-1 확인 가능.
+
+### 5.4 데이터 보안 (이 앱)
+
+Frankfurter API만 사용, 계정·위치·개인 식별 정보 수집 없음.
+
+| 항목 | 답변 가이드 |
+|------|-------------|
+| 데이터 수집 | 네트워크로 환율 API 요청 (환율 데이터 자체는 공개 참고용) |
+| 개인 데이터 | 수집 안 함 (AsyncStorage는 기기 로컬 설정만) |
+| 데이터 공유 | 제3자와 사용자 데이터 공유 없음 |
+| 암호화 | HTTPS (Frankfurter) |
+| 삭제 요청 | 해당 없음 (서버에 사용자 데이터 없음) |
+
+정확한 문구는 실제 수집·전송 여부에 맞게 작성. 불확실하면 보수적으로 표기.
+
+### 5.5 개인정보처리방침
+
+**URL (Play Console 입력값):**  
+[https://michaeldslim.github.io/privacy/currency-converter-privacy.txt](https://michaeldslim.github.io/privacy/currency-converter-privacy.txt)
+
+**문의:** `dongseok.lim@gmail.com`
+
+공용 [privacy.txt](https://michaeldslim.github.io/privacy/privacy.txt)에는 Terms + 공용 Privacy Policy 섹션이 있음. **환율 변환기 Play Console에는 앱 전용 URL만 사용.**
+
+**정책 내용 (데이터 보안·§5.4와 일치):**
+
+- 앱 이름: 환율 변환기
+- 수집하는 개인 데이터: 없음 (계정·위치·광고 ID 미사용)
+- 기기 로컬 저장: 표시 통화 등 앱 설정 (`AsyncStorage`, 기기 내에만 보관)
+- 네트워크: `api.frankfurter.app` 등 Frankfurter API로 환율 조회 (참고용 공개 데이터)
+- 제3자와 사용자 데이터 공유: 없음
+- 문의: `dongseok.lim@gmail.com`
+
+---
+
+## 6. 스토어 등록정보 (Listing)
+
+**기본 스토어 등록정보 → 한국어**를 먼저 작성하고, **영어·일본어** 스토어 번역 추가 (앱 UI i18n과 별개로 스토어 설명만 다국어).
+
+### 6.1 필수 에셋
+
+| 에셋 | 규격 | 비고 |
+|------|------|------|
+| **앱 아이콘** | 512×512 PNG | `assets/icon.png` 기반 |
+| **기능 그래픽** | 1024×500 | Play Store 상단 배너 |
+| **스크린샷** | 최소 2장, 권장 4–8장 | 휴대전화; 16:9 또는 9:16. 라이트/다크, ko/en UI 각 1세트 권장 |
+| **짧은 설명** | 최대 80자 | |
+| **전체 설명** | 최대 4000자 | |
+
+### 6.2 카피 초안 (한국어)
+
+**짧은 설명 (80자 이내):**
+
+> 원·달러·엔화 환율을 카드로 한눈에. 기준일 선택과 다국어(한·영·日) 지원.
+
+**전체 설명 요지:**
+
+- KRW 기준 USD / JPY 카드 (KRW·EUR 옵션)
+- Frankfurter 공개 환율 (참고용, 실시간 거래 환율 아님 — **면책 문구** 포함 권장)
+- 기준일·과거 영업일 환율, 다크 모드, 시스템 언어(en/ko/ja)
+
+**면책 (금융 앱):**
+
+> 본 앱의 환율은 참고용이며 투자·송금 결정의 유일한 근거로 사용하지 마세요.
+
+### 6.3 스토어 언어
+
+| 스토어 로케일 | 우선순위 |
+|---------------|----------|
+| ko-KR | 기본 |
+| en-US | 추가 |
+| ja-JP | 추가 (UI 일본어 지원과 맞춤) |
+
+---
+
+## 7. AAB 업로드 & 출시 트랙
+
+Google Play는 **단계적 출시**를 권장한다.
+
+```mermaid
+flowchart LR
+    I[Internal testing] --> C[Closed testing]
+    C --> O[Open testing]
+    O --> P[Production]
+```
+
+| 트랙 | 용도 | 검토 |
+|------|------|------|
+| **내부 테스트** | 본인·최대 100명, 이메일 초대 | 빠름, 스토어 listing 일부만으로 가능 |
+| **비공개 테스트** | 지인·QA 그룹 | |
+| **공개 테스트** | 누구나 베타 | |
+| **프로덕션** | 정식 출시 | 전체 정책·listing 완료 필요 |
+
+### 7.1 수동 업로드 (첫 출시에 권장)
+
+1. Play Console → **테스트 → 내부 테스트** (또는 **프로덕션**)
+2. **새 버전 만들기**
+3. **App Bundle 업로드** → `eas build`로 받은 `.aab` 파일
+4. **버전 이름** `1.4.0`, **버전 코드**는 이전보다 큰 정수 (EAS `autoIncrement` 사용 시 자동)
+5. **출시 노트** 작성 (ko / en)
+6. **검토 → 출시** (내부 테스트는 즉시, 프로덕션은 Google 검토 1–7일)
+
+### 7.2 버전 규칙
+
+| 필드 | 위치 | 규칙 |
+|------|------|------|
+| `version` | `app.json` | 사용자에게 보이는 semver (`1.4.0` → `1.4.1`) |
+| `versionCode` | EAS autoIncrement 또는 `build.gradle` | **매 업로드마다 증가** (정수) |
+| `runtimeVersion` | `app.json` | EAS Update 호환성; 네이티브 변경 시 bump |
+
+### 7.3 업데이트 출시 (2차 이후)
+
+1. `app.json` `version` bump
+2. JS만 변경 → `runtimeVersion` 동일 유지 가능 → EAS Update 검토
+3. 네이티브/아이콘/권한 변경 → `runtimeVersion` bump + **새 AAB 빌드**
+4. `eas build -p android --profile production` (또는 `--local`)
+5. Play Console 새 버전에 AAB 업로드
+
+---
+
+## 8. EAS Submit (자동 업로드)
+
+수동 업로드 대신 CLI로 Play Console에 올리기.
+
+### 8.1 Google Service Account 설정
+
+1. [expo.fyi/creating-google-service-account](https://expo.fyi/creating-google-service-account) 가이드 따라 JSON 키 생성
+2. Play Console → **사용자 및 권한** → 서비스 계정에 **릴리스 관리** 권한
+3. EAS에 업로드:
+
+```bash
+eas credentials --platform android
+# → Google Service Account → JSON 업로드
+```
+
+### 8.2 제출
+
+```bash
+# 최근 production 빌드 제출
+eas submit --platform android --profile production
+
+# 특정 빌드 ID
+eas submit --platform android --id <BUILD_ID>
+
+# 로컬 AAB 파일 직접
+eas submit --platform android --path ./path/to/app.aab
+```
+
+`eas.json` `submit.production.android.track: "internal"` 이면 **내부 테스트 트랙**에 올라간다. 첫 출시는 `releaseStatus: "draft"`로 올린 뒤 Console에서 검토하는 것이 안전.
+
+---
+
+## 9. 출시 후: EAS Update (OTA)
+
+이미 설정됨 (`app.json`):
+
+```json
+"updates": { "url": "https://u.expo.dev/510a6c15-aa41-4d53-9e2f-34197b67a7cd" },
+"runtimeVersion": "1.4.0"
+```
+
+| 변경 종류 | 조치 |
+|-----------|------|
+| JS·i18n·UI만 | `eas update --channel production` (스토어 재제출 불필요) |
+| 네이티브 모듈·`app.json` plugins·아이콘 | 새 AAB + `runtimeVersion` bump |
+
+```bash
+# production 채널에 OTA 배포
+eas update --channel production --message "fix: ..."
+```
+
+**주의:** OTA는 이미 설치된 앱만 업데이트. 스토어 신규 설치자는 스토어의 AAB 버전을 받는다.
+
+---
+
+## 10. 체크리스트 & 트러블슈팅
+
+### Phase 4 출시 체크리스트
+
+#### 빌드
+
+- [ ] `npm run typecheck` 통과
+- [ ] `eas.json` `production.distribution` → `"store"`
+- [ ] `eas build -p android --profile production` 성공 (또는 `--local`)
+- [ ] 실기기에서 release/preview APK로 스모크 테스트 (환율 로드, 캘린더, 다크모드, en/ko/ja)
+
+#### Play Console
+
+- [x] 개발자 계정 등록 — **보유**
+- [ ] 앱 생성 (`com.mike008.currencyconverter`)
+- [ ] 콘텐츠 등급·데이터 보안·타겟층 완료
+- [x] 개인정보처리방침 URL — [currency-converter-privacy.txt](https://michaeldslim.github.io/privacy/currency-converter-privacy.txt) (Play Console에 입력)
+- [ ] 스토어 listing (ko + en + ja), 스크린샷, 기능 그래픽
+- [ ] 내부 테스트 트랙에 AAB 업로드 → 실기기 설치 확인
+- [ ] 프로덕션 출시 (출시 노트, 국가/지역 선택)
+
+#### 출시 후
+
+- [ ] `eas update` 채널 production 연동 확인
+- [ ] Play Console **비정상 종료·ANR** 모니터링
+
+### 명령어 요약
+
+```bash
+# 타입체크
+npm run typecheck
+
+# 로컬 개발
+npm run android
+
+# 클라우드 production AAB
+eas build -p android --profile production
+
+# 로컬 production AAB
+eas build -p android --profile production --local
+
+# 내부 테스트 APK (preview 프로필 추가 후)
+eas build -p android --profile preview
+
+# Play Store 제출
+eas submit -p android --profile production
+
+# OTA (JS만)
+eas update --channel production --message "..."
+```
+
+### 참고 링크
+
+- [EAS Build — 로컬 빌드](https://docs.expo.dev/build-reference/local-builds/)
+- [EAS Submit — Android](https://docs.expo.dev/submit/android/)
+- [수동 Android 제출](https://docs.expo.dev/submit/android-manual/)
+- [Google Play Console](https://play.google.com/console)
+- [개인정보처리방침 (환율 변환기)](https://michaeldslim.github.io/privacy/currency-converter-privacy.txt)
+- [공용 Terms + Privacy](https://michaeldslim.github.io/privacy/privacy.txt)
+- [Frankfurter API](https://www.frankfurter.app/) (데이터 보안 설문 작성 시)
+
+---
+
+## 관련 파일
+
+| 파일 | 역할 |
+|------|------|
+| `app.json` | `version`, `runtimeVersion`, `android.package`, EAS `projectId` |
+| `eas.json` | 빌드 프로필, submit 트랙 (gitignore — 로컬 백업 권장) |
+| `android/app/build.gradle` | `versionCode`, AAB 출력 이름 |
+| `.cursor/rules/currency-converter-plan.mdc` | Phase 4 Release 상위 로드맵 |
