@@ -6,9 +6,12 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "expo": "~57.0.8",
     "expo-haptics": "~57.0.1",
+    "expo-localization": "~57.0.1",
     "expo-status-bar": "~57.0.1",
     "expo-updates": "~57.0.10",
+    "i18next": "^26.3.6",
     "react": "19.2.3",
+    "react-i18next": "^17.0.11",
     "react-native": "0.86.0",
     "react-native-calendars": "^1.1314.0",
     "react-native-safe-area-context": "~5.7.0"

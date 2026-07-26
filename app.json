@@ -6,7 +6,9 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "platforms": ["android"],
+    "platforms": [
+      "android"
+    ],
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -32,6 +34,9 @@
         "projectId": "510a6c15-aa41-4d53-9e2f-34197b67a7cd"
       }
     },
-    "owner": "mike008"
+    "owner": "mike008",
+    "plugins": [
+      "expo-localization"
+    ]
   }
 }
