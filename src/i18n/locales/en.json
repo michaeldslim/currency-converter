@@ -1,0 +1,52 @@
+{
+  "common": {
+    "close": "Close",
+    "retry": "Retry"
+  },
+  "home": {
+    "title": "Currency Converter",
+    "displayCurrencies": "Display",
+    "displayCurrenciesA11y": "Display currency settings",
+    "subtitle": "Base currency: Korean Won (KRW)",
+    "lastFetched": "Last updated: {{time}}",
+    "rateDateLabel": "Rate date",
+    "rateDateSelectA11y": "Select rate date",
+    "staleRateHint": "Before today's fix · Previous business day",
+    "tapToChangeDate": "Tap to change date",
+    "todayRates": "Today's rates",
+    "todayRatesRefreshA11y": "Refresh today's rates",
+    "loading": "Loading exchange rates…"
+  },
+  "settings": {
+    "title": "Display",
+    "optionalHint": "US Dollar and Japanese Yen are always shown. Korean Won and Euro are optional.",
+    "showCurrencyA11y": "Show {{name}}"
+  },
+  "calendar": {
+    "title": "Select rate date",
+    "hint": "Weekends, holidays, and future dates cannot be selected.",
+    "selectedDate": "Selected rate date: {{date}}",
+    "selectedToday": "Selected rate date: Today's rates"
+  },
+  "card": {
+    "amountInputA11y": "Enter {{name}} amount"
+  },
+  "currency": {
+    "usd": { "name": "US Dollar" },
+    "jpy": { "name": "Japanese Yen" },
+    "eur": { "name": "Euro" },
+    "krw": { "name": "Korean Won" }
+  },
+  "row": {
+    "krw": "Won",
+    "usd": "Dollar",
+    "jpy": "Yen",
+    "eur": "Euro"
+  },
+  "errors": {
+    "fetchFailed": "Failed to load exchange rates.",
+    "noCurrencies": "No currencies to display.",
+    "apiRequestFailed": "Exchange rate API request failed ({{status}}).",
+    "missingRate": "Failed to load {{code}} exchange rate."
+  }
+}

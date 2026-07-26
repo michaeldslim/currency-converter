@@ -1,0 +1,52 @@
+{
+  "common": {
+    "close": "닫기",
+    "retry": "다시 시도"
+  },
+  "home": {
+    "title": "환율 변환기",
+    "displayCurrencies": "표시 통화",
+    "displayCurrenciesA11y": "표시 통화 설정",
+    "subtitle": "기준 통화: 원화 (KRW)",
+    "lastFetched": "마지막 조회: {{time}}",
+    "rateDateLabel": "기준일",
+    "rateDateSelectA11y": "기준일 선택",
+    "staleRateHint": "오늘 고시 전 · 전 영업일 환율",
+    "tapToChangeDate": "탭하여 날짜 변경",
+    "todayRates": "오늘 환율",
+    "todayRatesRefreshA11y": "오늘 환율 새로고침",
+    "loading": "환율을 불러오는 중..."
+  },
+  "settings": {
+    "title": "표시 통화",
+    "optionalHint": "미국 달러와 일본 엔은 항상 표시됩니다. 원화·유로는 선택 사항입니다.",
+    "showCurrencyA11y": "{{name}} 표시"
+  },
+  "calendar": {
+    "title": "기준일 선택",
+    "hint": "주말, 공휴일, 미래 날짜는 선택할 수 없습니다.",
+    "selectedDate": "선택된 기준일: {{date}}",
+    "selectedToday": "선택된 기준일: 오늘 환율"
+  },
+  "card": {
+    "amountInputA11y": "{{name}} 금액 입력"
+  },
+  "currency": {
+    "usd": { "name": "미국 달러" },
+    "jpy": { "name": "일본 엔" },
+    "eur": { "name": "유로" },
+    "krw": { "name": "대한민국 원" }
+  },
+  "row": {
+    "krw": "원화",
+    "usd": "달러",
+    "jpy": "엔화",
+    "eur": "유로"
+  },
+  "errors": {
+    "fetchFailed": "환율을 불러오지 못했습니다.",
+    "noCurrencies": "표시할 통화가 없습니다.",
+    "apiRequestFailed": "환율 API 요청 실패 ({{status}}).",
+    "missingRate": "{{code}} 환율 데이터를 불러오지 못했습니다."
+  }
+}

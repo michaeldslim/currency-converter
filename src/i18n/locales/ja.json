@@ -1,0 +1,52 @@
+{
+  "common": {
+    "close": "閉じる",
+    "retry": "再試行"
+  },
+  "home": {
+    "title": "為替レート変換",
+    "displayCurrencies": "表示通貨",
+    "displayCurrenciesA11y": "表示通貨の設定",
+    "subtitle": "基準通貨: 韓国ウォン (KRW)",
+    "lastFetched": "最終取得: {{time}}",
+    "rateDateLabel": "基準日",
+    "rateDateSelectA11y": "基準日を選択",
+    "staleRateHint": "本日の公表前 · 前営業日のレート",
+    "tapToChangeDate": "タップして日付を変更",
+    "todayRates": "本日のレート",
+    "todayRatesRefreshA11y": "本日のレートを更新",
+    "loading": "為替レートを読み込み中..."
+  },
+  "settings": {
+    "title": "表示通貨",
+    "optionalHint": "米ドルと日本円は常に表示されます。韓国ウォンとユーロは任意です。",
+    "showCurrencyA11y": "{{name}}を表示"
+  },
+  "calendar": {
+    "title": "基準日を選択",
+    "hint": "週末、祝日、未来の日付は選択できません。",
+    "selectedDate": "選択した基準日: {{date}}",
+    "selectedToday": "選択した基準日: 本日のレート"
+  },
+  "card": {
+    "amountInputA11y": "{{name}}の金額を入力"
+  },
+  "currency": {
+    "usd": { "name": "米ドル" },
+    "jpy": { "name": "日本円" },
+    "eur": { "name": "ユーロ" },
+    "krw": { "name": "韓国ウォン" }
+  },
+  "row": {
+    "krw": "ウォン",
+    "usd": "ドル",
+    "jpy": "円",
+    "eur": "ユーロ"
+  },
+  "errors": {
+    "fetchFailed": "為替レートを読み込めませんでした。",
+    "noCurrencies": "表示する通貨がありません。",
+    "apiRequestFailed": "為替APIリクエストに失敗しました ({{status}})。",
+    "missingRate": "{{code}}の為替データを読み込めませんでした。"
+  }
+}
