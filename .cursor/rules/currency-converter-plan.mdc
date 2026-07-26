@@ -21,7 +21,7 @@ Android-only React Native + Expo + TypeScript currency viewer. **Base currency: 
 | Safe area | `react-native-safe-area-context` |
 | Haptics | `expo-haptics` |
 | Theming | `useColorScheme` + `src/theme/colors.ts` |
-| Localization | `expo-localization` + `i18next` + `react-i18next` (system locale; no in-app language toggle) |
+| Localization | `expo-localization` + `i18next` + `react-i18next` (system locale default; optional in-app override — see below) |
 
 Bundle ID: `com.mike008.currencyconverter`
 
@@ -29,16 +29,44 @@ Bundle ID: `com.mike008.currencyconverter`
 
 **Yes — use an i18n library.** With ~50 user-facing strings across screens, modals, errors, currency names, calendar labels, and date/number formatting, a small i18n setup is the right tool even without an in-app language picker. Hard-coding three languages in components does not scale and duplicates logic already split across `formatCurrency.ts`, `crossRate.ts`, and `RateDateCalendarModal.tsx`.
 
-### Rules
+### Rules (current — Phase 2.5 ✅)
 
 | Rule | Detail |
 |------|--------|
-| Locale source | **Android system language only** — no settings toggle |
+| Locale source (shipped) | **Android system language** — no in-app language toggle yet |
 | Supported | `en`, `ko`, `ja` |
 | Fallback | `en` when system locale is unsupported (e.g. `fr`, `de`) |
 | Resolution | `expo-localization` `getLocales()[0].languageCode` → map `en-*` → `en`, `ko-*` → `ko`, `ja-*` → `ja` |
-| Re-resolve | On `AppState` `active` (optional but recommended) so OS language changes apply after returning to the app |
+| Re-resolve | On `AppState` `active` so OS language changes apply after returning to the app |
 | **표시 통화** modal | **Keep** — toggles optional currency cards (KRW/EUR), not UI language |
+| **Launcher app name** | **Fixed** `환율 변환기` (not localized; intentional) |
+
+### Language preference — compromise (planned, not shipped)
+
+Default **follow system**; optional **in-app override** when the user wants UI language ≠ phone language.
+
+| Setting | Behavior |
+|---------|----------|
+| **System** (default) | `AsyncStorage` preference `null` / unset → use device language (current behavior) |
+| **Manual** | User picks `en` \| `ko` \| `ja` in app → persist choice; ignore system until reset |
+| **Reset** | “Use system language” option clears override → back to device locale |
+
+**UI (TBD placement)** — e.g. segment or list in **표시 통화** modal, or a small **언어** entry on `HomeScreen` header. Separate from currency toggles; label clearly as language, not “표시 통화”.
+
+**Implementation sketch**
+
+- `src/hooks/useLanguagePreference.ts` — read/write `AsyncStorage`; expose `preference: AppLanguage \| 'system'`
+- `useAppLocale` / `changeAppLanguage` — effective language = `preference === 'system' ? getDeviceLanguage() : preference`
+- On `AppState` `active`: re-resolve **only when** preference is `system`
+- i18n strings: `settings.languageTitle`, `settings.languageSystem`, `settings.languageEn`, etc.
+
+**Why compromise**
+
+- Ship simple (system-only) first — done in Phase 2.5
+- Add toggle later without ripping out i18n — same `en` / `ko` / `ja` JSON files
+- Covers users who keep phone in one language but want the app in another
+
+**JS-only** → EAS Update eligible when implemented.
 
 ### Stack
 
@@ -125,8 +153,9 @@ Register `LocaleConfig.locales.en`, `.ko`, `.ja` in `RateDateCalendarModal` (or 
 | `src/hooks/useExchangeRates.ts` | Load / refresh / selectDate / resetToLatest / needsTodayRefresh |
 | `src/hooks/useLocalToday.ts` | Local date tracking (60s interval + AppState active) |
 | `src/i18n/index.ts` | i18next init, device locale resolution, resource loading |
-| `src/i18n/locales/{en,ko,ja}.json` | UI strings (no in-app language toggle) |
+| `src/i18n/locales/{en,ko,ja}.json` | UI strings |
 | `src/hooks/useAppLocale.ts` | BCP 47 locale for `Intl` / `toLocaleString` |
+| `src/hooks/useLanguagePreference.ts` | *(Phase 2.5b)* `system` \| `en` \| `ko` \| `ja` override + `AsyncStorage` |
 | `src/utils/formatCurrency.ts` | Currency + date formatting (locale-aware) |
 | `src/utils/crossRate.ts` | USD↔JPY triangulation, foreign amount formatting |
 | `src/utils/rateCalendar.ts` | Selectable dates, TARGET holidays, month marked dates |
@@ -148,7 +177,8 @@ Keep **rate math in service/utils**, not in components.
 |-------|--------|-------|
 | Phase 1 — MVP | **Done** | Cards, API, calendar, safe area, date rollover refresh |
 | Phase 2 — UX polish | **Done** | Skeleton, haptics, dark mode, icon/splash theme |
-| Phase 2.5 — Localization | **Done** | System locale en/ko/ja via i18next; no language toggle |
+| Phase 2.5 — Localization | **Done** | System locale en/ko/ja via i18next |
+| Phase 2.5b — Language preference | Optional | Compromise: system default + in-app override (`AsyncStorage`) |
 | Phase 3 — Features | Pending | Manual input, favorites, offline cache, rate delta |
 | Phase 4 — Release | Pending | Production EAS build, Play Store, OTA |
 
@@ -175,7 +205,7 @@ Keep **rate math in service/utils**, not in components.
 - [x] Dark mode (`userInterfaceStyle: automatic`, `useAppTheme`)
 - [x] App icon / splash finance theme (navy `#1E3A8A`, ₩ exchange mark)
 
-## Phase 2.5 — Localization ✅
+## Phase 2.5 — Localization ✅ (system locale)
 
 - [x] Install `expo-localization`, `i18next`, `react-i18next`
 - [x] `src/i18n/` — `en`, `ko`, `ja` JSON resources + init
@@ -185,7 +215,17 @@ Keep **rate math in service/utils**, not in components.
 - [x] Locale-aware `formatRateDate`, `formatFetchedAt`, `formatKrw` / cross formatters
 - [x] Calendar `LocaleConfig` for en / ko / ja
 - [x] Remove `nameKo` / `nameEn` from `CurrencyConfig`; rename `labelKo` → `labelKey`
+- [x] Launcher name stays `환율 변환기` (not localized)
 - [ ] Manual test: Android system language en, ko, ja + unsupported-locale fallback
+
+## Phase 2.5b — Language preference (compromise, optional)
+
+- [ ] `useLanguagePreference` + `AsyncStorage` (`system` \| `en` \| `ko` \| `ja`)
+- [ ] Wire effective locale: override when set, else `getDeviceLanguage()`
+- [ ] In-app UI: system / en / ko / ja + “use system language” reset
+- [ ] i18n copy for language settings (`settings.language*`)
+- [ ] `AppState` re-resolve only when preference is `system`
+- [ ] Manual test: override persists across restarts; system option tracks OS changes
 
 ## Phase 3 — Features
 
