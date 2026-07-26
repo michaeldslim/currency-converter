@@ -24,9 +24,61 @@ If the slice is still mid-edit or mixes unrelated changes, **do not** propose a 
 ## Always ask before committing
 
 - **Never** run `git add` / `git commit` unless the user explicitly says to commit (in this message or after you ask).
-- When a slice looks ready, **stop and ask**: e.g. “Ready to commit i18n scaffold (**4 files**, ~120 lines)? Proposed message: `feat: add i18n scaffold with expo-localization and en/ko/ja locale files` Commit now?”
-- The user decides yes or no; wait for their answer before any git write commands.
+- When a slice looks ready, **stop and ask** using the [proposal format](#proposal-format-commit-and-push) below — include **copy-paste-ready commands**, not just the message.
+- The user decides yes or no; wait for their answer before any git write commands (unless they run the commands themselves).
 - If they decline, continue work or offer a smaller slice.
+
+### Proposal format (commit and push)
+
+Every commit or push proposal must include:
+
+1. **Summary** — what changed, file count, ~lines changed
+2. **Proposed message** (commits only) — full `type: subject` line
+3. **Commands** — exact shell commands the user can run (or approve for the agent to run)
+
+**Commit proposal example**
+
+> Ready to commit i18n scaffold (**4 files**, ~120 lines)?
+>
+> **Message:** `feat: add i18n scaffold with expo-localization and en/ko/ja locale files`
+>
+> ```bash
+> git add src/i18n/index.ts src/i18n/locales/en.json src/i18n/locales/ko.json src/i18n/locales/ja.json
+> git status
+> git diff --staged
+> git commit -m "feat: add i18n scaffold with expo-localization and en/ko/ja locale files"
+> ```
+>
+> Commit now? (you can run the commands above, or ask me to run them)
+
+**Push proposal on `main`**
+
+> **3 commits** ahead of `origin/main`, typecheck clean. Push now?
+>
+> ```bash
+> git status
+> git log origin/main..HEAD --oneline
+> git push origin main
+> ```
+>
+> First push on `main` (no upstream yet): use `git push -u origin main` instead.
+
+**Push proposal on a feature branch** (e.g. `feature/i18n`)
+
+> **2 commits** ahead of `origin/feature/i18n`. Push now?
+>
+> ```bash
+> git status
+> git branch --show-current
+> git log origin/feature/i18n..HEAD --oneline
+> git push
+> ```
+>
+> First push on a new branch: use `git push -u origin feature/i18n` instead of `git push`.
+
+- List **every file path** in `git add` — never `git add .` in the proposed commands.
+- For multi-line commit bodies, show `git commit -m "subject" -m "body line"` or a HEREDOC in the command block.
+- Pick push command from [branch type](#push-commands-by-branch) below; always show the **current branch name** in the proposal.
 
 ## How to stage (partial commits)
 
@@ -117,11 +169,29 @@ chore: add expo-localization and i18next dependencies
 docs: add localization plan to currency-converter rules
 ```
 
-When asking to commit, include the **proposed message** (subject + body if any) for approval.
+When asking to commit, include the **proposed message** and the full **git add** / **git commit** command block.
+
+When asking to push, include the full **git push** command block (and `git status` / `git log` for context).
 
 ## Push workflow
 
 **Do not push after every commit by default.** Commits are local checkpoints; push when it makes sense to back up or share work.
+
+### Push commands (by branch)
+
+Use **different commands** depending on which branch you are on:
+
+| Branch | First push (no upstream) | Regular push |
+|--------|--------------------------|--------------|
+| **`main`** | `git push -u origin main` | `git push origin main` |
+| **Feature branch** (e.g. `feature/i18n`) | `git push -u origin <branch>` | `git push` |
+
+**Why the split?**
+
+- On **`main`**: explicit `git push origin main` — you always see remote + branch (your habit).
+- On a **feature branch**: after `-u`, plain **`git push`** pushes the **current** branch only — safer than typing a branch name and avoids ever pushing `main` by mistake while on `feature/...`.
+
+Explicit `git push origin <branch>` on a feature branch is also fine if you prefer; default proposal uses `git push` when not on `main`.
 
 ### When to push (recommended)
 
@@ -136,23 +206,23 @@ When asking to commit, include the **proposed message** (subject + body if any) 
 ### Rules (same as commit: you decide)
 
 - **Never** run `git push` unless you explicitly ask (same approval model as commits).
-- After a successful commit you approved, I may **suggest** a push — e.g. “3 commits ahead of `origin/main`, all typecheck clean. Push now?” — but wait for your answer.
-- Use `git push -u origin <branch>` when the branch is new; otherwise plain `git push`.
+- When suggesting a push, use the [proposal format](#proposal-format-commit-and-push) — check **current branch** first (`git branch --show-current`), then propose the matching command from the table above.
+- **`-u` only once** per branch (first push); do not repeat `-u` on every push.
 - **Never** force-push `main` / `master` unless you explicitly request it.
 
 ### Practical rhythm for this project
 
-1. Make several **small approved commits** on a feature branch (e.g. i18n scaffold → HomeScreen → calendar).
-2. When the slice is **stable** (`npm run typecheck` passes), **ask once** to push those commits together.
+1. Make several **small approved commits** on `main` or a feature branch.
+2. When the slice is **stable** (`npm run typecheck` passes), **ask once** to push with the right command for that branch.
 3. Or push at **session end** whatever is committed and green.
 
 Pushing every commit is safe but creates a noisy remote history and many CI runs if CI exists; batching **2–4 related commits** before push is usually the sweet spot for a solo app repo.
 
 ## During multi-step tasks
 
-1. Complete one slice → summarize what changed → **ask** if they want to commit.
+1. Complete one slice → summarize what changed → **ask** to commit with **commands**.
 2. After a commit (if approved), move to the next slice.
-3. After **2–3 related commits** or a stable milestone, **ask** if they want to push (do not push automatically).
+3. After **2–3 related commits** or a stable milestone, **ask** to push with **commands** (do not push automatically).
 4. At the end of a task, **do not** auto-commit remaining files; list what is left uncommitted and ask per slice if needed.
 
 ## Do not
