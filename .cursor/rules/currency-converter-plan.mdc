@@ -21,8 +21,65 @@ Android-only React Native + Expo + TypeScript currency viewer. **Base currency: 
 | Safe area | `react-native-safe-area-context` |
 | Haptics | `expo-haptics` |
 | Theming | `useColorScheme` + `src/theme/colors.ts` |
+| Localization | `expo-localization` + `i18next` + `react-i18next` (system locale; no in-app language toggle) |
 
 Bundle ID: `com.mike008.currencyconverter`
+
+## Localization (i18n)
+
+**Yes — use an i18n library.** With ~50 user-facing strings across screens, modals, errors, currency names, calendar labels, and date/number formatting, a small i18n setup is the right tool even without an in-app language picker. Hard-coding three languages in components does not scale and duplicates logic already split across `formatCurrency.ts`, `crossRate.ts`, and `RateDateCalendarModal.tsx`.
+
+### Rules
+
+| Rule | Detail |
+|------|--------|
+| Locale source | **Android system language only** — no settings toggle |
+| Supported | `en`, `ko`, `ja` |
+| Fallback | `en` when system locale is unsupported (e.g. `fr`, `de`) |
+| Resolution | `expo-localization` `getLocales()[0].languageCode` → map `en-*` → `en`, `ko-*` → `ko`, `ja-*` → `ja` |
+| Re-resolve | On `AppState` `active` (optional but recommended) so OS language changes apply after returning to the app |
+| **표시 통화** modal | **Keep** — toggles optional currency cards (KRW/EUR), not UI language |
+
+### Stack
+
+```bash
+npx expo install expo-localization
+npm install i18next react-i18next
+```
+
+- `src/i18n/index.ts` — init `i18next`, resolve device locale, register resources
+- `src/i18n/locales/en.json`, `ko.json`, `ja.json` — all UI copy
+- `src/hooks/useAppLocale.ts` — BCP 47 tag for `Intl` / `toLocaleString` (`en-US`, `ko-KR`, `ja-JP`)
+- Components: `useTranslation()` for labels; utils accept locale or read from i18n singleton
+
+### String inventory (migrate from hard-coded Korean)
+
+| Area | Examples | Notes |
+|------|----------|-------|
+| `HomeScreen` | 환율 변환기, 기준일, 오늘 환율, 다시 시도 | Title, hints, a11y labels |
+| `CurrencySettingsModal` | 표시 통화, 닫기, hint copy | Currency toggles unchanged |
+| `RateDateCalendarModal` | 기준일 선택, 주말…, `LocaleConfig` month/day names | Per-locale calendar config |
+| `crossRate.ts` | 원화, 엔화, 달러 row labels | Rename `labelKo` → `label` (i18n key or passed label) |
+| `currencies.ts` | `nameKo` / `nameEn` | Replace with `t('currency.usd.name')`; drop per-locale name fields from `CurrencyConfig` |
+| `formatCurrency.ts` | `ko-KR` date pattern, `formatFetchedAt` | Use `useAppLocale()` BCP 47 tag |
+| `crossRate.ts` formatters | `toLocaleString('ko-KR')` | Same locale tag as formatting utils |
+| Errors | `exchangeRateApi.ts`, `useExchangeRates.ts` | `t('errors.fetchFailed')`, etc. |
+
+### Calendar locales
+
+Register `LocaleConfig.locales.en`, `.ko`, `.ja` in `RateDateCalendarModal` (or `src/i18n/calendarLocales.ts`); set `LocaleConfig.defaultLocale` from resolved app language.
+
+### Types / API cleanup
+
+- `CurrencyConfig`: remove `nameKo` / `nameEn`; display name via `t(\`currency.${code.toLowerCase()}.name\`)`
+- `CardConversionRow`: `labelKo` → `label`
+- `getCardConversionRows`: accept `t` or return i18n keys; prefer keys in utils, translate in `CurrencyCard`
+
+### Testing
+
+- Android emulator: Settings → System → Languages — switch en / ko / ja and cold-start app
+- Verify fallback: set system to unsupported locale → UI in English
+- `npm run typecheck` after TS changes
 
 ## Display Rules
 
@@ -67,8 +124,11 @@ Bundle ID: `com.mike008.currencyconverter`
 | `src/services/exchangeRateApi.ts` | Frankfurter fetch (`latest` or `/{date}`) + invert |
 | `src/hooks/useExchangeRates.ts` | Load / refresh / selectDate / resetToLatest / needsTodayRefresh |
 | `src/hooks/useLocalToday.ts` | Local date tracking (60s interval + AppState active) |
-| `src/utils/formatCurrency.ts` | `₩` formatting (`ko-KR`), date label |
-| `src/utils/crossRate.ts` | USD↔JPY 삼각환산, foreign amount formatting |
+| `src/i18n/index.ts` | i18next init, device locale resolution, resource loading |
+| `src/i18n/locales/{en,ko,ja}.json` | UI strings (no in-app language toggle) |
+| `src/hooks/useAppLocale.ts` | BCP 47 locale for `Intl` / `toLocaleString` |
+| `src/utils/formatCurrency.ts` | Currency + date formatting (locale-aware) |
+| `src/utils/crossRate.ts` | USD↔JPY triangulation, foreign amount formatting |
 | `src/utils/rateCalendar.ts` | Selectable dates, TARGET holidays, month marked dates |
 | `src/components/CurrencyCard.tsx` | Single currency card UI |
 | `src/theme/colors.ts` | Light / dark color tokens |
@@ -76,7 +136,7 @@ Bundle ID: `com.mike008.currencyconverter`
 | `src/components/CurrencyCardSkeleton.tsx` | Pulsing skeleton card |
 | `src/components/SkeletonBone.tsx` | Animated skeleton block |
 | `src/utils/haptics.ts` | Success haptic on refresh |
-| `src/components/RateDateCalendarModal.tsx` | Calendar bottom sheet (Korean locale, themed) |
+| `src/components/RateDateCalendarModal.tsx` | Calendar bottom sheet (en/ko/ja `LocaleConfig`, themed) |
 | `src/components/CurrencySettingsModal.tsx` | **표시 통화** bottom sheet (KRW/EUR toggles) |
 | `src/screens/HomeScreen.tsx` | Header, date badge, refresh banner, card stack, last-fetched time |
 
@@ -88,6 +148,7 @@ Keep **rate math in service/utils**, not in components.
 |-------|--------|-------|
 | Phase 1 — MVP | **Done** | Cards, API, calendar, safe area, date rollover refresh |
 | Phase 2 — UX polish | **Done** | Skeleton, haptics, dark mode, icon/splash theme |
+| Phase 2.5 — Localization | Pending | System locale en/ko/ja via i18next; no language toggle |
 | Phase 3 — Features | Pending | Manual input, favorites, offline cache, rate delta |
 | Phase 4 — Release | Pending | Production EAS build, Play Store, OTA |
 
@@ -114,6 +175,18 @@ Keep **rate math in service/utils**, not in components.
 - [x] Dark mode (`userInterfaceStyle: automatic`, `useAppTheme`)
 - [x] App icon / splash finance theme (navy `#1E3A8A`, ₩ exchange mark)
 
+## Phase 2.5 — Localization
+
+- [ ] Install `expo-localization`, `i18next`, `react-i18next`
+- [ ] `src/i18n/` — `en`, `ko`, `ja` JSON resources + init
+- [ ] `useAppLocale` — map device language → `en-US` / `ko-KR` / `ja-JP`
+- [ ] Migrate `HomeScreen`, modals, errors, a11y labels to `t()`
+- [ ] Currency names + card row labels (`crossRate`, `currencies.ts`)
+- [ ] Locale-aware `formatRateDate`, `formatFetchedAt`, `formatKrw` / cross formatters
+- [ ] Calendar `LocaleConfig` for en / ko / ja
+- [ ] Remove `nameKo` / `nameEn` from `CurrencyConfig`; rename `labelKo` → `label`
+- [ ] Manual test: Android system language en, ko, ja + unsupported-locale fallback
+
 ## Phase 3 — Features
 
 - [x] Optional EUR card (toggle + `AsyncStorage` preference)
@@ -128,7 +201,7 @@ Keep **rate math in service/utils**, not in components.
 ## Phase 4 — Release
 
 - [ ] `eas build --platform android --profile production`
-- [ ] Play Store listing (ko)
+- [ ] Play Store listing (ko primary; en / ja store copy)
 - [ ] `runtimeVersion` + EAS Update channel for JS-only fixes
 - [ ] Privacy policy (network: Frankfurter API only)
 
@@ -152,5 +225,6 @@ eas build -p android --profile production
 - Portrait only
 - Minimize scope per change; match existing file layout
 - Run `npm run typecheck` after TS changes
-- Native module / `android/` changes → new EAS build; JS-only → EAS Update eligible
+- **i18n** — all user-visible strings in `src/i18n/locales/`; no new hard-coded UI copy in components
+- Native module / `android/` changes → new EAS build; JS-only → EAS Update eligible (i18n is JS-only → OTA-eligible)
 - No `CLAUDE.md` / `.claude/` — Cursor rules only (this file)
