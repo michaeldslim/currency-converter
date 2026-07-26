@@ -148,7 +148,7 @@ Keep **rate math in service/utils**, not in components.
 |-------|--------|-------|
 | Phase 1 — MVP | **Done** | Cards, API, calendar, safe area, date rollover refresh |
 | Phase 2 — UX polish | **Done** | Skeleton, haptics, dark mode, icon/splash theme |
-| Phase 2.5 — Localization | Pending | System locale en/ko/ja via i18next; no language toggle |
+| Phase 2.5 — Localization | **Done** | System locale en/ko/ja via i18next; no language toggle |
 | Phase 3 — Features | Pending | Manual input, favorites, offline cache, rate delta |
 | Phase 4 — Release | Pending | Production EAS build, Play Store, OTA |
 
@@ -175,16 +175,16 @@ Keep **rate math in service/utils**, not in components.
 - [x] Dark mode (`userInterfaceStyle: automatic`, `useAppTheme`)
 - [x] App icon / splash finance theme (navy `#1E3A8A`, ₩ exchange mark)
 
-## Phase 2.5 — Localization
+## Phase 2.5 — Localization ✅
 
-- [ ] Install `expo-localization`, `i18next`, `react-i18next`
-- [ ] `src/i18n/` — `en`, `ko`, `ja` JSON resources + init
-- [ ] `useAppLocale` — map device language → `en-US` / `ko-KR` / `ja-JP`
-- [ ] Migrate `HomeScreen`, modals, errors, a11y labels to `t()`
-- [ ] Currency names + card row labels (`crossRate`, `currencies.ts`)
-- [ ] Locale-aware `formatRateDate`, `formatFetchedAt`, `formatKrw` / cross formatters
-- [ ] Calendar `LocaleConfig` for en / ko / ja
-- [ ] Remove `nameKo` / `nameEn` from `CurrencyConfig`; rename `labelKo` → `label`
+- [x] Install `expo-localization`, `i18next`, `react-i18next`
+- [x] `src/i18n/` — `en`, `ko`, `ja` JSON resources + init
+- [x] `useAppLocale` — map device language → `en-US` / `ko-KR` / `ja-JP`
+- [x] Migrate `HomeScreen`, modals, errors, a11y labels to `t()`
+- [x] Currency names + card row labels (`crossRate`, `currencies.ts`)
+- [x] Locale-aware `formatRateDate`, `formatFetchedAt`, `formatKrw` / cross formatters
+- [x] Calendar `LocaleConfig` for en / ko / ja
+- [x] Remove `nameKo` / `nameEn` from `CurrencyConfig`; rename `labelKo` → `labelKey`
 - [ ] Manual test: Android system language en, ko, ja + unsupported-locale fallback
 
 ## Phase 3 — Features
