@@ -2,7 +2,7 @@
   "expo": {
     "name": "환율 변환기",
     "slug": "currencyconverter",
-    "version": "1.4.0",
+    "version": "1.4.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -28,7 +28,7 @@
     "updates": {
       "url": "https://u.expo.dev/510a6c15-aa41-4d53-9e2f-34197b67a7cd"
     },
-    "runtimeVersion": "1.4.0",
+    "runtimeVersion": "1.4.1",
     "extra": {
       "eas": {
         "projectId": "510a6c15-aa41-4d53-9e2f-34197b67a7cd"

@@ -7,7 +7,6 @@ alwaysApply: false
 # Play Store 출시 & EAS 로컬 빌드 플랜
 
 **앱:** 환율 변환기 (`com.mike008.currencyconverter`)  
-**현재 버전:** `1.4.0` (`app.json` `version` + `runtimeVersion`)  
 **플랫폼:** Android only  
 **관련 Phase:** `currency-converter-plan.mdc` → Phase 4 — Release
 
@@ -177,8 +176,6 @@ eas credentials --platform android
 | `buildType: "apk"` (preview) | 실기기 sideload 테스트용 |
 | `autoIncrement: true` | `versionCode` 자동 증가 (매 업로드마다 필수) |
 | `submit.production` | `eas submit` 기본값 (internal 트랙, draft) |
-
-`version` (`1.4.0`)은 `app.json`에서 수동 관리. `versionCode`는 EAS `autoIncrement` 또는 `android/app/build.gradle` `versionCode`로 관리.
 
 ---
 
@@ -446,7 +443,7 @@ flowchart LR
 1. Play Console → **테스트 → 내부 테스트** (또는 **프로덕션**)
 2. **새 버전 만들기**
 3. **App Bundle 업로드** → `eas build`로 받은 `.aab` 파일
-4. **버전 이름** `1.4.0`, **버전 코드**는 이전보다 큰 정수 (EAS `autoIncrement` 사용 시 자동)
+4. **버전 코드**는 이전보다 큰 정수 (EAS `autoIncrement` 사용 시 자동)
 5. **출시 노트** 작성 (ko / en)
 6. **검토 → 출시** (내부 테스트는 즉시, 프로덕션은 Google 검토 1–7일)
 
@@ -506,7 +503,7 @@ eas submit --platform android --path ./path/to/app.aab
 
 ```json
 "updates": { "url": "https://u.expo.dev/510a6c15-aa41-4d53-9e2f-34197b67a7cd" },
-"runtimeVersion": "1.4.0"
+"runtimeVersion": "1.4.1"
 ```
 
 | 변경 종류 | 조치 |
