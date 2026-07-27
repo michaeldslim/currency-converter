@@ -56,6 +56,8 @@ export function HomeScreen() {
     loading,
     refreshing,
     error,
+    isOffline,
+    isUsingCachedRates,
     refresh,
     selectDate,
     resetToLatest,
@@ -204,9 +206,9 @@ export function HomeScreen() {
                 </Pressable>
 
                 <Pressable
-                  style={styles.todayButton}
+                  style={[styles.todayButton, isOffline && styles.todayButtonDisabled]}
                   onPress={() => void resetToLatest()}
-                  disabled={refreshing}
+                  disabled={refreshing || isOffline}
                   accessibilityRole="button"
                   accessibilityLabel={t('home.todayRatesRefreshA11y')}
                 >
@@ -221,12 +223,30 @@ export function HomeScreen() {
 
             </View>
 
+            {isOffline && rates ? (
+              <View style={styles.offlineBanner}>
+                <Text style={styles.offlineBannerText}>
+                  {t('home.offlineRates', { date: formatRateDate(rates.date, locale) })}
+                </Text>
+              </View>
+            ) : null}
+
             {error ? (
               <View style={styles.errorBox}>
                 <Text style={styles.errorText}>{error}</Text>
-                <Pressable style={styles.retryButton} onPress={() => void refresh()}>
-                  <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
-                </Pressable>
+                {!isOffline || !rates ? (
+                  <Pressable style={styles.retryButton} onPress={() => void refresh()}>
+                    <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
+
+            {isUsingCachedRates && !isOffline && rates ? (
+              <View style={styles.offlineBanner}>
+                <Text style={styles.offlineBannerText}>
+                  {t('home.cachedRatesHint', { date: formatRateDate(rates.date, locale) })}
+                </Text>
               </View>
             ) : null}
 
@@ -340,6 +360,24 @@ function createStyles(colors: AppColors) {
       fontSize: 14,
       fontWeight: '700',
       color: colors.todayButtonText,
+    },
+    todayButtonDisabled: {
+      opacity: 0.5,
+    },
+    offlineBanner: {
+      backgroundColor: colors.refreshBannerBg,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.refreshBannerBorder,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      marginBottom: 12,
+    },
+    offlineBannerText: {
+      color: colors.accentText,
+      fontSize: 13,
+      fontWeight: '600',
+      lineHeight: 18,
     },
     scrollContent: {
       paddingHorizontal: 20,
