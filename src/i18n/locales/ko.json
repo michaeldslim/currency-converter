@@ -15,7 +15,9 @@
     "tapToChangeDate": "탭하여 날짜 변경",
     "todayRates": "오늘 환율",
     "todayRatesRefreshA11y": "오늘 환율 새로고침",
-    "loading": "환율을 불러오는 중..."
+    "loading": "환율을 불러오는 중...",
+    "offlineRates": "오프라인 — {{date}} 기준일 환율로 표시 / 계산합니다.",
+    "cachedRatesHint": "새로고침 실패 — {{date}} 기준일로 저장된 환율을 표시합니다."
   },
   "settings": {
     "title": "표시 통화",
@@ -47,6 +49,9 @@
     "fetchFailed": "환율을 불러오지 못했습니다.",
     "noCurrencies": "표시할 통화가 없습니다.",
     "apiRequestFailed": "환율 API 요청 실패 ({{status}}).",
-    "missingRate": "{{code}} 환율 데이터를 불러오지 못했습니다."
+    "missingRate": "{{code}} 환율 데이터를 불러오지 못했습니다.",
+    "noCachedRates": "저장된 환율이 없습니다. 인터넷에 연결한 뒤 환율을 불러오세요.",
+    "offlineCannotRefresh": "오프라인에서는 새로고침할 수 없습니다.",
+    "offlineCannotChangeDate": "오프라인에서는 기준일을 변경할 수 없습니다."
   }
 }

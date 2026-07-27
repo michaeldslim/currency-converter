@@ -15,7 +15,9 @@
     "tapToChangeDate": "タップして日付を変更",
     "todayRates": "本日のレート",
     "todayRatesRefreshA11y": "本日のレートを更新",
-    "loading": "為替レートを読み込み中..."
+    "loading": "為替レートを読み込み中...",
+    "offlineRates": "オフライン — {{date}}基準日のレートを表示 / 計算します。",
+    "cachedRatesHint": "更新失敗 — {{date}}基準日で保存したレートを表示しています。"
   },
   "settings": {
     "title": "表示通貨",
@@ -47,6 +49,9 @@
     "fetchFailed": "為替レートを読み込めませんでした。",
     "noCurrencies": "表示する通貨がありません。",
     "apiRequestFailed": "為替APIリクエストに失敗しました ({{status}})。",
-    "missingRate": "{{code}}の為替データを読み込めませんでした。"
+    "missingRate": "{{code}}の為替データを読み込めませんでした。",
+    "noCachedRates": "保存されたレートがありません。インターネットに接続してレートを読み込んでください。",
+    "offlineCannotRefresh": "オフラインでは更新できません。",
+    "offlineCannotChangeDate": "オフラインでは基準日を変更できません。"
   }
 }

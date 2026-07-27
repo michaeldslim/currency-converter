@@ -15,7 +15,9 @@
     "tapToChangeDate": "Tap to change date",
     "todayRates": "Today's rates",
     "todayRatesRefreshA11y": "Refresh today's rates",
-    "loading": "Loading exchange rates…"
+    "loading": "Loading exchange rates…",
+    "offlineRates": "Offline — showing / calculating {{date}} rates.",
+    "cachedRatesHint": "Could not refresh — showing saved rates for {{date}}."
   },
   "settings": {
     "title": "Display",
@@ -47,6 +49,9 @@
     "fetchFailed": "Failed to load exchange rates.",
     "noCurrencies": "No currencies to display.",
     "apiRequestFailed": "Exchange rate API request failed ({{status}}).",
-    "missingRate": "Failed to load {{code}} exchange rate."
+    "missingRate": "Failed to load {{code}} exchange rate.",
+    "noCachedRates": "No saved rates. Connect to the internet to load exchange rates.",
+    "offlineCannotRefresh": "Cannot refresh while offline.",
+    "offlineCannotChangeDate": "Cannot change rate date while offline."
   }
 }
