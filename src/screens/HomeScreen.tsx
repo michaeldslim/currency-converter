@@ -42,7 +42,6 @@ export function HomeScreen() {
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [keyboardPadding, setKeyboardPadding] = useState(0);
-  const [inputResetVersion, setInputResetVersion] = useState(0);
   const {
     enabledCurrencies,
     optionalPreferences,
@@ -80,9 +79,8 @@ export function HomeScreen() {
     };
   }, []);
 
-  const resetAllCardInputs = () => {
+  const dismissKeyboard = () => {
     Keyboard.dismiss();
-    setInputResetVersion((version) => version + 1);
   };
 
   const scrollToCardInput = (currencyCode: string) => {
@@ -111,15 +109,12 @@ export function HomeScreen() {
             onLayout={(event) => {
               cardOffsetRef.current[currency.code] = event.nativeEvent.layout.y;
             }}
-            onStartShouldSetResponder={() => true}
-            onResponderTerminationRequest={() => false}
           >
             {cardRatesReady ? (
               <CurrencyCard
                 currency={currency}
                 krwPerUnit={rates!.krwPerUnit}
                 colors={colors}
-                inputResetVersion={inputResetVersion}
                 onInputFocus={() => scrollToCardInput(currency.code)}
               />
             ) : (
@@ -165,7 +160,7 @@ export function HomeScreen() {
           automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
         >
-          <Pressable style={styles.outsideTapArea} onPress={resetAllCardInputs}>
+          <Pressable style={styles.outsideTapArea} onPress={dismissKeyboard}>
             <View
               style={styles.header}
               onLayout={(event) => {

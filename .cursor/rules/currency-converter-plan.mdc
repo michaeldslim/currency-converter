@@ -125,6 +125,21 @@ Register `LocaleConfig.locales.en`, `.ko`, `.ja` in `RateDateCalendarModal` (or 
 - **2 cards** by default (USD, JPY); up to 4 when both optionals enabled; `CARD_HEIGHT = 192`, `CARD_GAP = 12`
 - Manual refresh via **오늘 환율** button only (no pull-to-refresh)
 
+### Per-card amount input
+
+Each `CurrencyCard` has a numeric input — custom foreign amount drives KRW + cross outputs live (`parseAmountInput`, `getCardConversionRows`).
+
+| Action | Behavior |
+|--------|----------|
+| **Focus input** | Clears field for fresh entry; `HomeScreen` scrolls that card into view |
+| **Edit multiple cards** | Each card owns `amountText` — USD and JPY values are independent |
+| **Tap card header or conversion results** | Resets **that card only** to `currency.displayAmount` (e.g. `$1`, `¥100`) |
+| **Tap empty card space** | No reset — allows scroll gestures without clearing values |
+| **Tap another card's input** | Previous card **keeps** its custom value (no `onBlur` reset) |
+| **Tap screen header / outside cards** | `Keyboard.dismiss()` only — does not reset any card |
+
+**Implementation** — `Pressable` on card header and conversion results (`resetAmount`); input row is not a reset target. No global `inputResetVersion`; card-slot touch responders removed so header/result taps work. Empty left space is intentionally not tappable for reset.
+
 ### 기준일 & Calendar
 
 - **기준일** badge — prominent blue style; tap opens calendar modal
@@ -160,7 +175,7 @@ Register `LocaleConfig.locales.en`, `.ko`, `.ja` in `RateDateCalendarModal` (or 
 | `src/utils/formatCurrency.ts` | Currency + date formatting (locale-aware) |
 | `src/utils/crossRate.ts` | USD↔JPY triangulation, foreign amount formatting |
 | `src/utils/rateCalendar.ts` | Selectable dates, TARGET holidays, month marked dates |
-| `src/components/CurrencyCard.tsx` | Single currency card UI |
+| `src/components/CurrencyCard.tsx` | Single currency card UI + per-card amount input; reset on header/results tap |
 | `src/theme/colors.ts` | Light / dark color tokens |
 | `src/hooks/useAppTheme.ts` | `useColorScheme` wrapper |
 | `src/components/CurrencyCardSkeleton.tsx` | Pulsing skeleton card |
@@ -168,7 +183,7 @@ Register `LocaleConfig.locales.en`, `.ko`, `.ja` in `RateDateCalendarModal` (or 
 | `src/utils/haptics.ts` | Success haptic on refresh |
 | `src/components/RateDateCalendarModal.tsx` | Calendar bottom sheet (en/ko/ja `LocaleConfig`, themed) |
 | `src/components/CurrencySettingsModal.tsx` | **표시 통화** bottom sheet (KRW/EUR toggles + version footer) |
-| `src/screens/HomeScreen.tsx` | Header, date badge, refresh banner, card stack, last-fetched time |
+| `src/screens/HomeScreen.tsx` | Header, date badge, refresh banner, card stack, keyboard dismiss, scroll-to-card on input focus |
 
 Keep **rate math in service/utils**, not in components.
 
@@ -180,7 +195,7 @@ Keep **rate math in service/utils**, not in components.
 | Phase 2 — UX polish | **Done** | Skeleton, haptics, dark mode, icon/splash theme |
 | Phase 2.5 — Localization | **Done** | System locale en/ko/ja via i18next |
 | Phase 2.5b — Language preference | Optional | Compromise: system default + in-app override (`AsyncStorage`) |
-| Phase 3 — Features | Pending | Manual input, favorites, offline cache, rate delta |
+| Phase 3 — Features | In progress | Per-card amount input done; favorites, rate delta pending |
 | Phase 4 — Release | Pending | Production EAS build, Play Store, OTA |
 
 ## Phase 1 — MVP ✅
@@ -235,7 +250,8 @@ Keep **rate math in service/utils**, not in components.
 - [x] Optional KRW card (toggle; 달러·엔화 출력)
 - [x] Card order USD → JPY → KRW → EUR (`getEnabledCurrencies`)
 - [x] Per-card cross rate — USD card: 원화+엔화; JPY card: 원화+달러 (`crossRate.ts`)
-- [ ] Manual amount input (KRW ↔ foreign) — per-card foreign amount → KRW (done); reverse pending
+- [x] Manual amount input — per-card foreign amount → KRW + cross; independent cards; tap header or results to reset
+- [ ] Manual amount input — reverse (KRW → foreign) pending
 - [ ] Favorite currency pin order
 - [ ] Offline cache (`AsyncStorage` + stale badge)
 - [ ] Rate change indicator (↑↓ vs previous fetch)

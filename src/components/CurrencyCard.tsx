@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useAppLocale } from '../hooks/useAppLocale';
 import { AppColors } from '../theme/colors';
@@ -14,7 +14,6 @@ interface CurrencyCardProps {
   krwPerUnit: Partial<Record<CurrencyCode, number>>;
   colors: AppColors;
   onInputFocus?: () => void;
-  inputResetVersion?: number;
 }
 
 export function CurrencyCard({
@@ -22,22 +21,27 @@ export function CurrencyCard({
   krwPerUnit,
   colors,
   onInputFocus,
-  inputResetVersion = 0,
 }: CurrencyCardProps) {
   const { t } = useTranslation();
   const { locale } = useAppLocale();
   const currencyName = getCurrencyName(t, currency.code);
+  const inputRef = useRef<TextInput>(null);
   const [amountText, setAmountText] = useState(String(currency.displayAmount));
 
   useEffect(() => {
     setAmountText(String(currency.displayAmount));
-  }, [currency.code, currency.displayAmount, inputResetVersion]);
+  }, [currency.code, currency.displayAmount]);
 
   const parsedAmount = useMemo(() => parseAmountInput(amountText), [amountText]);
   const conversionRows = useMemo(
     () => getCardConversionRows(currency.code, parsedAmount, krwPerUnit),
     [currency.code, parsedAmount, krwPerUnit],
   );
+
+  const resetAmount = () => {
+    inputRef.current?.blur();
+    setAmountText(String(currency.displayAmount));
+  };
 
   const handleInputFocus = () => {
     setAmountText('');
@@ -55,18 +59,20 @@ export function CurrencyCard({
         },
       ]}
     >
-      <View style={styles.headerRow}>
-        <Text style={styles.flag}>{currency.flag}</Text>
-        <View style={styles.titleBlock}>
-          <View style={styles.codeRow}>
-            <Text style={[styles.currencyCode, { color: colors.textPrimary }]}>{currency.code}</Text>
-            <Text style={[styles.baseAmount, { color: colors.textSecondary }]}>
-              {currency.displayLabel}
-            </Text>
+      <Pressable onPress={resetAmount}>
+        <View style={styles.headerRow}>
+          <Text style={styles.flag}>{currency.flag}</Text>
+          <View style={styles.titleBlock}>
+            <View style={styles.codeRow}>
+              <Text style={[styles.currencyCode, { color: colors.textPrimary }]}>{currency.code}</Text>
+              <Text style={[styles.baseAmount, { color: colors.textSecondary }]}>
+                {currency.displayLabel}
+              </Text>
+            </View>
+            <Text style={[styles.currencyName, { color: colors.textMuted }]}>{currencyName}</Text>
           </View>
-          <Text style={[styles.currencyName, { color: colors.textMuted }]}>{currencyName}</Text>
         </View>
-      </View>
+      </Pressable>
 
       <View style={styles.converterBlock}>
         <View
@@ -80,6 +86,7 @@ export function CurrencyCard({
         >
           <Text style={[styles.inputSymbol, { color: colors.textSecondary }]}>{currency.symbol}</Text>
           <TextInput
+            ref={inputRef}
             style={[styles.amountInput, { color: colors.textPrimary }]}
             value={amountText}
             onChangeText={setAmountText}
@@ -92,21 +99,23 @@ export function CurrencyCard({
             accessibilityLabel={t('card.amountInputA11y', { name: currencyName })}
           />
         </View>
-        <View style={styles.resultsBlock}>
-          {conversionRows.map((row) => (
-            <View key={row.labelKey} style={styles.resultRow}>
-              <Text style={[styles.resultLabel, { color: colors.textMuted }]}>{t(row.labelKey)}</Text>
-              <Text
-                style={[
-                  row.emphasized ? styles.primaryValue : styles.secondaryValue,
-                  { color: row.emphasized ? colors.textPrimary : colors.textSecondary },
-                ]}
-              >
-                {row.value !== null ? formatCrossAmount(row.targetCode, row.value, locale) : '—'}
-              </Text>
-            </View>
-          ))}
-        </View>
+        <Pressable onPress={resetAmount}>
+          <View style={styles.resultsBlock}>
+            {conversionRows.map((row) => (
+              <View key={row.labelKey} style={styles.resultRow}>
+                <Text style={[styles.resultLabel, { color: colors.textMuted }]}>{t(row.labelKey)}</Text>
+                <Text
+                  style={[
+                    row.emphasized ? styles.primaryValue : styles.secondaryValue,
+                    { color: row.emphasized ? colors.textPrimary : colors.textSecondary },
+                  ]}
+                >
+                  {row.value !== null ? formatCrossAmount(row.targetCode, row.value, locale) : '—'}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </Pressable>
       </View>
     </View>
   );
