@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { formatAppVersion } from '../constants/appVersion';
 import { getOptionalCurrencies } from '../constants/currencies';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { AppColors } from '../theme/colors';
@@ -66,6 +67,8 @@ export function CurrencySettingsModal({
                 </View>
               );
             })}
+
+            <Text style={styles.version}>{formatAppVersion()}</Text>
           </View>
         </SafeAreaView>
       </View>
@@ -142,6 +145,13 @@ function createStyles(colors: AppColors) {
       marginTop: 2,
       fontSize: 13,
       color: colors.textMuted,
+    },
+    version: {
+      marginTop: 16,
+      fontSize: 12,
+      fontWeight: '500',
+      color: colors.textMuted,
+      textAlign: 'center',
     },
   });
 }

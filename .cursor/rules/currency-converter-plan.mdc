@@ -38,7 +38,7 @@ Bundle ID: `com.mike008.currencyconverter`
 | Fallback | `en` when system locale is unsupported (e.g. `fr`, `de`) |
 | Resolution | `expo-localization` `getLocales()[0].languageCode` → map `en-*` → `en`, `ko-*` → `ko`, `ja-*` → `ja` |
 | Re-resolve | On `AppState` `active` so OS language changes apply after returning to the app |
-| **표시 통화** modal | **Keep** — toggles optional currency cards (KRW/EUR), not UI language |
+| **표시 통화** modal | **Keep** — toggles optional currency cards (KRW/EUR), not UI language; shows app version at bottom (`v{semver}` from `app.json` `expo.version`, e.g. `v1.4.1`) |
 | **Launcher app name** | **Fixed** `환율 변환기` (not localized; intentional) |
 
 ### Language preference — compromise (planned, not shipped)
@@ -85,7 +85,7 @@ npm install i18next react-i18next
 | Area | Examples | Notes |
 |------|----------|-------|
 | `HomeScreen` | 환율 변환기, 기준일, 오늘 환율, 다시 시도 | Title, hints, a11y labels |
-| `CurrencySettingsModal` | 표시 통화, 닫기, hint copy | Currency toggles unchanged |
+| `CurrencySettingsModal` | 표시 통화, 닫기, hint copy, version footer | Currency toggles unchanged; version not localized |
 | `RateDateCalendarModal` | 기준일 선택, 주말…, `LocaleConfig` month/day names | Per-locale calendar config |
 | `crossRate.ts` | 원화, 엔화, 달러 row labels | Rename `labelKo` → `label` (i18n key or passed label) |
 | `currencies.ts` | `nameKo` / `nameEn` | Replace with `t('currency.usd.name')`; drop per-locale name fields from `CurrencyConfig` |
@@ -148,6 +148,7 @@ Register `LocaleConfig.locales.en`, `.ko`, `.ja` in `RateDateCalendarModal` (or 
 | `App.tsx` | SafeAreaProvider, StatusBar, HomeScreen entry |
 | `src/types/index.ts` | `CurrencyCode` (`USD` \| `JPY` \| `EUR` \| `KRW`), `CurrencyConfig`, `ExchangeRates` |
 | `src/constants/currencies.ts` | Card metadata, core/optional codes, `getEnabledCurrencies()` |
+| `src/constants/appVersion.ts` | `formatAppVersion()` — `v{semver}` from `app.json` `expo.version` |
 | `src/hooks/useEnabledCurrencies.ts` | Optional currency toggles + `AsyncStorage` persistence |
 | `src/services/exchangeRateApi.ts` | Frankfurter fetch (`latest` or `/{date}`) + invert |
 | `src/hooks/useExchangeRates.ts` | Load / refresh / selectDate / resetToLatest / needsTodayRefresh |
@@ -166,7 +167,7 @@ Register `LocaleConfig.locales.en`, `.ko`, `.ja` in `RateDateCalendarModal` (or 
 | `src/components/SkeletonBone.tsx` | Animated skeleton block |
 | `src/utils/haptics.ts` | Success haptic on refresh |
 | `src/components/RateDateCalendarModal.tsx` | Calendar bottom sheet (en/ko/ja `LocaleConfig`, themed) |
-| `src/components/CurrencySettingsModal.tsx` | **표시 통화** bottom sheet (KRW/EUR toggles) |
+| `src/components/CurrencySettingsModal.tsx` | **표시 통화** bottom sheet (KRW/EUR toggles + version footer) |
 | `src/screens/HomeScreen.tsx` | Header, date badge, refresh banner, card stack, last-fetched time |
 
 Keep **rate math in service/utils**, not in components.
@@ -204,6 +205,7 @@ Keep **rate math in service/utils**, not in components.
 - [x] Haptic feedback on refresh success (`expo-haptics`)
 - [x] Dark mode (`userInterfaceStyle: automatic`, `useAppTheme`)
 - [x] App icon / splash finance theme (navy `#1E3A8A`, ₩ exchange mark)
+- [x] App version footer in **표시 통화** modal (`v{semver}` from `app.json`, e.g. `v1.4.1`)
 
 ## Phase 2.5 — Localization ✅ (system locale)
 
