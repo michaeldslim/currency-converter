@@ -1,6 +1,6 @@
 # Currency Converter (환율 변환기)
 
-Android-only React Native app that displays **USD** and **JPY** exchange rates against **Korean Won (KRW)** in large cards.
+Android-only React Native app that displays **USD** and **JPY** exchange rates against **Korean Won (KRW)** in large cards. UI language follows the **Android system language** — English, Korean, or Japanese (`en` / `ko` / `ja`); unsupported locales fall back to English.
 
 ## Features
 
