@@ -31,7 +31,8 @@
     "selectedToday": "Selected rate date: Today's rates"
   },
   "card": {
-    "amountInputA11y": "Enter {{name}} amount"
+    "amountInputA11y": "Enter {{name}} amount",
+    "rateUnavailable": "Cannot load {{name}} rates. Connect to the internet and try again."
   },
   "currency": {
     "usd": { "name": "US Dollar" },

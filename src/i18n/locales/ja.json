@@ -31,7 +31,8 @@
     "selectedToday": "選択した基準日: 本日のレート"
   },
   "card": {
-    "amountInputA11y": "{{name}}の金額を入力"
+    "amountInputA11y": "{{name}}の金額を入力",
+    "rateUnavailable": "{{name}}の為替レートを読み込めません。インターネットに接続してから再度お試しください。"
   },
   "currency": {
     "usd": { "name": "米ドル" },

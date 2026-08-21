@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CurrencyCard } from '../components/CurrencyCard';
 import { CurrencyCardSkeleton } from '../components/CurrencyCardSkeleton';
+import { CurrencyCardUnavailable } from '../components/CurrencyCardUnavailable';
 import { CurrencySettingsModal } from '../components/CurrencySettingsModal';
 import { RateDateCalendarModal } from '../components/RateDateCalendarModal';
 import { useAppLocale } from '../hooks/useAppLocale';
@@ -117,8 +118,10 @@ export function HomeScreen() {
                 colors={colors}
                 onInputFocus={() => scrollToCardInput(currency.code)}
               />
-            ) : (
+            ) : !rates || loading || refreshing ? (
               <CurrencyCardSkeleton currency={currency} colors={colors} />
+            ) : (
+              <CurrencyCardUnavailable currency={currency} colors={colors} />
             )}
           </View>
         );

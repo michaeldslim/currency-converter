@@ -61,16 +61,9 @@ export function getEnabledCurrencies(preferences: OptionalCurrencyPreferences): 
   return [...core, ...optional];
 }
 
-export function getRateFetchCodes(enabledCurrencies: CurrencyConfig[]): ForeignCurrencyCode[] {
-  const codes = new Set<ForeignCurrencyCode>(['USD', 'JPY']);
-
-  for (const currency of enabledCurrencies) {
-    if (currency.code !== 'KRW') {
-      codes.add(currency.code);
-    }
-  }
-
-  return [...codes];
+/** Always fetch optional foreign codes so offline cache covers toggled cards (e.g. EUR). */
+export function getRateFetchCodes(_enabledCurrencies: CurrencyConfig[]): ForeignCurrencyCode[] {
+  return ['USD', 'JPY', 'EUR'];
 }
 
 export function isCardRatesReady(
