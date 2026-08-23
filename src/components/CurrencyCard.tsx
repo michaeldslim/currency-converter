@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 5,
     paddingHorizontal: 18,
     paddingTop: 10,
-    paddingBottom: 12,
+    paddingBottom: 0,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
     shadowRadius: 12,

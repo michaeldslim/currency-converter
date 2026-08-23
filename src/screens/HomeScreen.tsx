@@ -28,7 +28,7 @@ import { isCardRatesReady } from '../constants/currencies';
 import { formatFetchedAt, formatRateDate } from '../utils/formatCurrency';
 
 const CARD_GAP = 12;
-const CARD_HEIGHT = 192;
+const CARD_HEIGHT = 162;
 const CARD_STACK_MARGIN_TOP = 12;
 const VERTICAL_PADDING = 24;
 
