@@ -106,24 +106,8 @@ export function HomeScreen() {
     });
   }, [activeCurrencyCode]);
 
-  const commitCalculatorExpression = () => {
-    if (activeCurrencyCode === null) {
-      return;
-    }
-
-    const trimmed = calculatorExpression.trim();
-    if (trimmed === '') {
-      return;
-    }
-
-    const result = evaluateArithmeticExpression(trimmed);
-    if (result !== null && result >= 0) {
-      setAmountForCode(activeCurrencyCode, formatCalculatedAmount(result));
-    }
-  };
-
   const dismissCalculator = () => {
-    commitCalculatorExpression();
+    resetAllAmountsToDefault(enabledCurrencies);
     setActiveCurrencyCode(null);
     setCalculatorExpression('');
     setCalculatorError(null);
