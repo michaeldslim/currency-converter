@@ -451,7 +451,7 @@ flowchart LR
 
 | 필드 | 위치 | 규칙 |
 |------|------|------|
-| `version` | `app.json` | 사용자에게 보이는 semver (`1.4.0` → `1.4.1`) |
+| `version` | `app.json` | 사용자에게 보이는 semver (`1.4.0` → `2.0.0`) |
 | `versionCode` | EAS autoIncrement 또는 `build.gradle` | **매 업로드마다 증가** (정수) |
 | `runtimeVersion` | `app.json` | EAS Update 호환성; 네이티브 변경 시 bump |
 
@@ -503,7 +503,7 @@ eas submit --platform android --path ./path/to/app.aab
 
 ```json
 "updates": { "url": "https://u.expo.dev/510a6c15-aa41-4d53-9e2f-34197b67a7cd" },
-"runtimeVersion": "1.4.1"
+"runtimeVersion": "2.0.0"
 ```
 
 | 변경 종류 | 조치 |

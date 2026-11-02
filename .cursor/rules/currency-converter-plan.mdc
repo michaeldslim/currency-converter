@@ -38,7 +38,7 @@ Bundle ID: `com.mike008.currencyconverter`
 | Fallback | `en` when system locale is unsupported (e.g. `fr`, `de`) |
 | Resolution | `expo-localization` `getLocales()[0].languageCode` → map `en-*` → `en`, `ko-*` → `ko`, `ja-*` → `ja` |
 | Re-resolve | On `AppState` `active` so OS language changes apply after returning to the app |
-| **표시 통화** modal | **Keep** — toggles optional currency cards (KRW/EUR), not UI language; shows app version at bottom (`v{semver}` from `app.json` `expo.version`, e.g. `v1.4.1`) |
+| **표시 통화** modal | **Keep** — toggles optional currency cards (KRW/EUR), not UI language; shows app version at bottom (`v{semver}` from `app.json` `expo.version`, e.g. `v2.0.0`) |
 | **Launcher app name** | **Fixed** `환율 변환기` (not localized; intentional) |
 
 ### Language preference — compromise (planned, not shipped)
@@ -220,7 +220,7 @@ Keep **rate math in service/utils**, not in components.
 - [x] Haptic feedback on refresh success (`expo-haptics`)
 - [x] Dark mode (`userInterfaceStyle: automatic`, `useAppTheme`)
 - [x] App icon / splash finance theme (navy `#1E3A8A`, ₩ exchange mark)
-- [x] App version footer in **표시 통화** modal (`v{semver}` from `app.json`, e.g. `v1.4.1`)
+- [x] App version footer in **표시 통화** modal (`v{semver}` from `app.json`, e.g. `v2.0.0`)
 
 ## Phase 2.5 — Localization ✅ (system locale)
 
