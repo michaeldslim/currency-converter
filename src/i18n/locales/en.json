@@ -30,6 +30,36 @@
     "selectedDate": "Selected rate date: {{date}}",
     "selectedToday": "Selected rate date: Today's rates"
   },
+  "calculator": {
+    "title": "Calculate",
+    "expressionA11y": "Expression",
+    "invalidExpression": "Cannot calculate",
+    "selectCardHint": "Tap an amount field on a card above, then enter numbers and operators",
+    "tapToEnter": "Tap to enter amount",
+    "done": "Done",
+    "resetAll": "Defaults",
+    "resetAllA11y": "Reset all currency amounts to defaults",
+    "key": {
+      "clear": "Clear",
+      "backspace": "Delete",
+      "divide": "Divide",
+      "multiply": "Multiply",
+      "subtract": "Subtract",
+      "add": "Add",
+      "apply": "Apply",
+      "0": "0",
+      "1": "1",
+      "2": "2",
+      "3": "3",
+      "4": "4",
+      "5": "5",
+      "6": "6",
+      "7": "7",
+      "8": "8",
+      "9": "9",
+      "decimal": "Decimal"
+    }
+  },
   "card": {
     "amountInputA11y": "Enter {{name}} amount",
     "rateUnavailable": "Cannot load {{name}} rates. Connect to the internet and try again."

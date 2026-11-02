@@ -30,6 +30,36 @@
     "selectedDate": "선택된 기준일: {{date}}",
     "selectedToday": "선택된 기준일: 오늘 환율"
   },
+  "calculator": {
+    "title": "계산",
+    "expressionA11y": "계산식",
+    "invalidExpression": "계산할 수 없습니다",
+    "selectCardHint": "위 통화 카드의 금액 칸을 탭한 뒤 숫자·연산을 입력하세요",
+    "tapToEnter": "탭하여 금액 입력",
+    "done": "완료",
+    "resetAll": "기본값",
+    "resetAllA11y": "모든 통화 금액을 기본값으로 되돌리기",
+    "key": {
+      "clear": "지우기",
+      "backspace": "한 글자 지우기",
+      "divide": "나누기",
+      "multiply": "곱하기",
+      "subtract": "빼기",
+      "add": "더하기",
+      "apply": "적용",
+      "0": "0",
+      "1": "1",
+      "2": "2",
+      "3": "3",
+      "4": "4",
+      "5": "5",
+      "6": "6",
+      "7": "7",
+      "8": "8",
+      "9": "9",
+      "decimal": "소수점"
+    }
+  },
   "card": {
     "amountInputA11y": "{{name}} 금액 입력",
     "rateUnavailable": "{{name}} 환율을 불러올 수 없습니다. 인터넷에 연결한 뒤 다시 시도하세요."
