@@ -1,36 +1,36 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  ActivityIndicator,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CurrencyCard } from '../components/CurrencyCard';
 import { CurrencyCardSkeleton } from '../components/CurrencyCardSkeleton';
 import { CurrencyCardUnavailable } from '../components/CurrencyCardUnavailable';
 import { CurrencySettingsModal } from '../components/CurrencySettingsModal';
+import { ExpressionCalculatorPad } from '../components/ExpressionCalculatorPad';
 import { RateDateCalendarModal } from '../components/RateDateCalendarModal';
 import { useAppLocale } from '../hooks/useAppLocale';
 import { useAppTheme } from '../hooks/useAppTheme';
+import { useCardAmounts } from '../hooks/useCardAmounts';
 import { useEnabledCurrencies } from '../hooks/useEnabledCurrencies';
 import { useExchangeRates } from '../hooks/useExchangeRates';
 import { useLocalToday } from '../hooks/useLocalToday';
 import { AppColors } from '../theme/colors';
+import { radius, spacing, typography } from '../theme/tokens';
 import { isCardRatesReady } from '../constants/currencies';
+import { CurrencyCode, CurrencyConfig } from '../types';
+import {
+  appendCalculatorToken,
+  evaluateArithmeticExpression,
+  formatCalculatedAmount,
+  resolveLiveConversionAmount,
+} from '../utils/evaluateExpression';
 import { formatFetchedAt, formatRateDate } from '../utils/formatCurrency';
 
 const CARD_GAP = 12;
 const CARD_HEIGHT = 168;
 const CARD_STACK_MARGIN_TOP = 12;
-const VERTICAL_PADDING = 24;
+const SCROLL_END_PADDING = spacing.md;
 
 export function HomeScreen() {
   const { t } = useTranslation();
@@ -39,10 +39,13 @@ export function HomeScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const scrollRef = useRef<ScrollView>(null);
   const headerHeightRef = useRef(0);
+  const scrollViewportHeightRef = useRef(0);
   const cardOffsetRef = useRef<Record<string, number>>({});
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
-  const [keyboardPadding, setKeyboardPadding] = useState(0);
+  const [activeCurrencyCode, setActiveCurrencyCode] = useState<CurrencyCode | null>(null);
+  const [calculatorExpression, setCalculatorExpression] = useState('');
+  const [calculatorError, setCalculatorError] = useState<string | null>(null);
   const {
     enabledCurrencies,
     optionalPreferences,
@@ -62,37 +65,138 @@ export function HomeScreen() {
     selectDate,
     resetToLatest,
   } = useExchangeRates({ enabledCurrencies, preferencesReady });
+  const {
+    amountsByCode,
+    setAmountForCode,
+    resetAmountForCurrency,
+    resetAllAmountsToDefault,
+    focusCardForEntry,
+  } = useCardAmounts(enabledCurrencies);
   const today = useLocalToday();
   const showStaleRateHint =
     rates !== null && selectedDate === null && rates.date < today;
+  const calculatorActive = activeCurrencyCode !== null;
+  const activeCurrencyLabel = useMemo(() => {
+    if (activeCurrencyCode === null) {
+      return null;
+    }
+    const match = enabledCurrencies.find((currency) => currency.code === activeCurrencyCode);
+    return match ? `${match.flag} ${match.code}` : activeCurrencyCode;
+  }, [activeCurrencyCode, enabledCurrencies]);
 
   useEffect(() => {
-    const showSubscription = Keyboard.addListener('keyboardDidShow', (event) => {
-      setKeyboardPadding(event.endCoordinates.height);
-    });
-    const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
-      setKeyboardPadding(0);
-    });
+    if (
+      activeCurrencyCode !== null &&
+      !enabledCurrencies.some((currency) => currency.code === activeCurrencyCode)
+    ) {
+      setActiveCurrencyCode(null);
+      setCalculatorExpression('');
+      setCalculatorError(null);
+    }
+  }, [activeCurrencyCode, enabledCurrencies]);
 
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, []);
+  useEffect(() => {
+    if (activeCurrencyCode === null) {
+      return;
+    }
 
-  const dismissKeyboard = () => {
-    Keyboard.dismiss();
+    const code = activeCurrencyCode;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => scrollToCardInput(code));
+    });
+  }, [activeCurrencyCode]);
+
+  const commitCalculatorExpression = () => {
+    if (activeCurrencyCode === null) {
+      return;
+    }
+
+    const trimmed = calculatorExpression.trim();
+    if (trimmed === '') {
+      return;
+    }
+
+    const result = evaluateArithmeticExpression(trimmed);
+    if (result !== null && result >= 0) {
+      setAmountForCode(activeCurrencyCode, formatCalculatedAmount(result));
+    }
+  };
+
+  const dismissCalculator = () => {
+    commitCalculatorExpression();
+    setActiveCurrencyCode(null);
+    setCalculatorExpression('');
+    setCalculatorError(null);
+  };
+
+  const handleCardFocus = (currency: CurrencyConfig) => {
+    setActiveCurrencyCode(currency.code);
+    setCalculatorExpression('');
+    setCalculatorError(null);
+    focusCardForEntry(currency, enabledCurrencies);
+  };
+
+  const handleResetAllAmounts = () => {
+    resetAllAmountsToDefault(enabledCurrencies);
+    setCalculatorExpression('');
+    setCalculatorError(null);
+  };
+
+  const handleCalculatorDigitOrOperator = (token: string) => {
+    setCalculatorError(null);
+    setCalculatorExpression((previous) => appendCalculatorToken(previous, token));
+  };
+
+  const handleCalculatorApply = () => {
+    if (activeCurrencyCode === null) {
+      return;
+    }
+
+    const trimmed = calculatorExpression.trim();
+    if (trimmed === '') {
+      return;
+    }
+
+    const result = evaluateArithmeticExpression(trimmed);
+    if (result === null || result < 0) {
+      setCalculatorError(t('calculator.invalidExpression'));
+      return;
+    }
+
+    setAmountForCode(activeCurrencyCode, formatCalculatedAmount(result));
+    setCalculatorExpression('');
+    setCalculatorError(null);
+  };
+
+  const getInputDisplayText = (code: CurrencyCode) => {
+    if (activeCurrencyCode === code && calculatorExpression !== '') {
+      return calculatorExpression;
+    }
+    return amountsByCode[code] ?? '';
+  };
+
+  const getConversionAmount = (code: CurrencyCode) => {
+    return resolveLiveConversionAmount(
+      amountsByCode[code] ?? '',
+      activeCurrencyCode === code,
+      calculatorExpression,
+    );
   };
 
   const scrollToCardInput = (currencyCode: string) => {
     const cardOffset = cardOffsetRef.current[currencyCode];
-    if (cardOffset === undefined) {
+    const viewportHeight = scrollViewportHeightRef.current;
+    if (cardOffset === undefined || viewportHeight <= 0) {
       return;
     }
 
+    const cardTop = headerHeightRef.current + CARD_STACK_MARGIN_TOP + cardOffset;
+    const cardBottom = cardTop + CARD_HEIGHT;
+    const targetY = cardBottom - viewportHeight + SCROLL_END_PADDING;
+
     requestAnimationFrame(() => {
       scrollRef.current?.scrollTo({
-        y: Math.max(0, headerHeightRef.current + CARD_STACK_MARGIN_TOP + cardOffset - 24),
+        y: Math.max(0, targetY),
         animated: true,
       });
     });
@@ -116,7 +220,19 @@ export function HomeScreen() {
                 currency={currency}
                 krwPerUnit={rates!.krwPerUnit}
                 colors={colors}
-                onInputFocus={() => scrollToCardInput(currency.code)}
+                amountText={amountsByCode[currency.code] ?? ''}
+                inputDisplayText={getInputDisplayText(currency.code)}
+                conversionAmount={getConversionAmount(currency.code)}
+                isCalculatorTarget={activeCurrencyCode === currency.code}
+                isCalculatorSessionActive={calculatorActive}
+                onInputFocus={() => handleCardFocus(currency)}
+                onResetAmount={() => {
+                  resetAmountForCurrency(currency);
+                  if (activeCurrencyCode === currency.code) {
+                    setCalculatorExpression('');
+                    setCalculatorError(null);
+                  }
+                }}
               />
             ) : !rates || loading || refreshing ? (
               <CurrencyCardSkeleton currency={currency} colors={colors} />
@@ -129,13 +245,13 @@ export function HomeScreen() {
     </View>
   );
 
+  const safeAreaEdges = calculatorActive
+    ? (['top', 'left', 'right'] as const)
+    : (['top', 'left', 'right', 'bottom'] as const);
+
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
-      <KeyboardAvoidingView
-        style={styles.keyboardAvoid}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
-      >
+    <SafeAreaView style={styles.safeArea} edges={safeAreaEdges}>
+      <View style={styles.mainColumn}>
         {rates ? (
           <RateDateCalendarModal
             visible={calendarVisible}
@@ -155,15 +271,19 @@ export function HomeScreen() {
 
         <ScrollView
           ref={scrollRef}
+          style={styles.scrollView}
+          onLayout={(event) => {
+            scrollViewportHeightRef.current = event.nativeEvent.layout.height;
+          }}
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingBottom: VERTICAL_PADDING + keyboardPadding },
+            calculatorActive ? styles.scrollContentWithCalculator : null,
+            { paddingBottom: SCROLL_END_PADDING },
           ]}
           keyboardShouldPersistTaps="handled"
-          automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
         >
-          <Pressable style={styles.outsideTapArea} onPress={dismissKeyboard}>
+          <View style={styles.scrollBody}>
             <View
               style={styles.header}
               onLayout={(event) => {
@@ -253,9 +373,30 @@ export function HomeScreen() {
             ) : null}
 
             {cardStack}
-          </Pressable>
+          </View>
         </ScrollView>
-      </KeyboardAvoidingView>
+
+        {calculatorActive ? (
+          <ExpressionCalculatorPad
+            activeCurrencyLabel={activeCurrencyLabel}
+            expression={calculatorExpression}
+            errorMessage={calculatorError}
+            colors={colors}
+            onDigitOrOperator={handleCalculatorDigitOrOperator}
+            onBackspace={() => {
+              setCalculatorError(null);
+              setCalculatorExpression((previous) => previous.slice(0, -1));
+            }}
+            onClear={() => {
+              setCalculatorExpression('');
+              setCalculatorError(null);
+            }}
+            onApply={handleCalculatorApply}
+            onResetAll={handleResetAllAmounts}
+            onDone={dismissCalculator}
+          />
+        ) : null}
+      </View>
     </SafeAreaView>
   );
 }
@@ -266,13 +407,20 @@ function createStyles(colors: AppColors) {
       flex: 1,
       backgroundColor: colors.background,
     },
-    keyboardAvoid: {
+    mainColumn: {
       flex: 1,
     },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContentWithCalculator: {
+      flexGrow: 1,
+      justifyContent: 'flex-end',
+    },
     header: {
-      paddingHorizontal: 4,
-      paddingTop: 12,
-      paddingBottom: 8,
+      paddingHorizontal: spacing.xs,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.sm,
     },
     titleRow: {
       flexDirection: 'row',
@@ -282,14 +430,13 @@ function createStyles(colors: AppColors) {
     },
     title: {
       flex: 1,
-      fontSize: 30,
-      fontWeight: '800',
+      ...typography.title,
       color: colors.textPrimary,
     },
     settingsButton: {
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 10,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.sm,
       backgroundColor: colors.todayButtonBg,
       borderWidth: 1,
       borderColor: colors.todayButtonBorder,
@@ -317,9 +464,9 @@ function createStyles(colors: AppColors) {
     },
     dateBadge: {
       flexShrink: 1,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      borderRadius: 14,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      borderRadius: radius.md,
       backgroundColor: colors.accentSoft,
       borderWidth: 1.5,
       borderColor: colors.accentBorder,
@@ -378,10 +525,10 @@ function createStyles(colors: AppColors) {
       lineHeight: 18,
     },
     scrollContent: {
-      paddingHorizontal: 20,
+      paddingHorizontal: spacing.xl,
       flexGrow: 1,
     },
-    outsideTapArea: {
+    scrollBody: {
       flexGrow: 1,
     },
     loadingHint: {
@@ -400,7 +547,7 @@ function createStyles(colors: AppColors) {
     },
     errorBox: {
       backgroundColor: colors.errorBg,
-      borderRadius: 16,
+      borderRadius: radius.lg,
       padding: 16,
       marginBottom: 12,
     },

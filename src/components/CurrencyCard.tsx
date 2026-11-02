@@ -1,50 +1,56 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useAppLocale } from '../hooks/useAppLocale';
 import { AppColors } from '../theme/colors';
+import { elevation, radius, spacing, typography } from '../theme/tokens';
 import { CurrencyCode, CurrencyConfig } from '../types';
 import { getCurrencyName } from '../utils/currencyName';
 import { formatCrossAmount, getCardConversionRows } from '../utils/crossRate';
-import { parseAmountInput } from '../utils/formatCurrency';
 
 interface CurrencyCardProps {
   currency: CurrencyConfig;
   krwPerUnit: Partial<Record<CurrencyCode, number>>;
   colors: AppColors;
+  amountText: string;
+  inputDisplayText: string;
+  conversionAmount: number | null;
+  isCalculatorTarget: boolean;
+  isCalculatorSessionActive: boolean;
   onInputFocus?: () => void;
+  onResetAmount?: () => void;
 }
 
 export function CurrencyCard({
   currency,
   krwPerUnit,
   colors,
+  amountText,
+  inputDisplayText,
+  conversionAmount,
+  isCalculatorTarget,
+  isCalculatorSessionActive,
   onInputFocus,
+  onResetAmount,
 }: CurrencyCardProps) {
   const { t } = useTranslation();
   const { locale } = useAppLocale();
   const currencyName = getCurrencyName(t, currency.code);
-  const inputRef = useRef<TextInput>(null);
-  const [amountText, setAmountText] = useState(String(currency.displayAmount));
-
-  useEffect(() => {
-    setAmountText(String(currency.displayAmount));
-  }, [currency.code, currency.displayAmount]);
-
-  const parsedAmount = useMemo(() => parseAmountInput(amountText), [amountText]);
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const showTapHint =
+    !isCalculatorSessionActive && !isCalculatorTarget && inputDisplayText.trim() === '';
+  const displayValue = showTapHint ? t('calculator.tapToEnter') : inputDisplayText || '0';
   const conversionRows = useMemo(
-    () => getCardConversionRows(currency.code, parsedAmount, krwPerUnit),
-    [currency.code, parsedAmount, krwPerUnit],
+    () => getCardConversionRows(currency.code, conversionAmount, krwPerUnit),
+    [currency.code, conversionAmount, krwPerUnit],
   );
 
   const resetAmount = () => {
-    inputRef.current?.blur();
-    setAmountText(String(currency.displayAmount));
+    onResetAmount?.();
   };
 
-  const handleInputFocus = () => {
-    setAmountText('');
+  const handleAmountPress = () => {
     onInputFocus?.();
   };
 
@@ -75,30 +81,41 @@ export function CurrencyCard({
       </Pressable>
 
       <View style={styles.converterBlock}>
-        <View
-          style={[
-            styles.amountInputRow,
-            {
-              backgroundColor: colors.accentSoft,
-              borderColor: colors.accentBorder,
-            },
-          ]}
+        <Pressable
+          onPress={handleAmountPress}
+          accessibilityRole="button"
+          accessibilityLabel={t('card.amountInputA11y', { name: currencyName })}
+          accessibilityHint={t('calculator.tapToEnter')}
         >
-          <Text style={[styles.inputSymbol, { color: colors.textSecondary }]}>{currency.symbol}</Text>
-          <TextInput
-            ref={inputRef}
-            style={[styles.amountInput, { color: colors.textPrimary }]}
-            value={amountText}
-            onChangeText={setAmountText}
-            onFocus={handleInputFocus}
-            keyboardType="numeric"
-            inputMode="decimal"
-            textAlign="right"
-            placeholder="0"
-            placeholderTextColor={colors.textMuted}
-            accessibilityLabel={t('card.amountInputA11y', { name: currencyName })}
-          />
-        </View>
+          <View
+            style={[
+              styles.amountInputRow,
+              isCalculatorSessionActive && !isCalculatorTarget
+                ? {
+                    backgroundColor: colors.background,
+                    borderColor:
+                      colors.cardBorder === 'transparent' ? '#E2E8F0' : colors.cardBorder,
+                  }
+                : {
+                    backgroundColor: colors.accentSoft,
+                    borderColor: colors.accentBorder,
+                  },
+              isCalculatorTarget ? styles.amountInputRowActive : null,
+            ]}
+          >
+            <Text style={[styles.inputSymbol, { color: colors.textSecondary }]}>{currency.symbol}</Text>
+            <Text
+              style={[
+                styles.amountInput,
+                { color: showTapHint ? colors.textMuted : colors.textPrimary },
+              ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
+              {displayValue}
+            </Text>
+          </View>
+        </Pressable>
         <Pressable onPress={resetAmount}>
           <View style={styles.resultsBlock}>
             {conversionRows.map((row) => (
@@ -121,104 +138,105 @@ export function CurrencyCard({
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    flex: 1,
-    borderRadius: 20,
-    borderLeftWidth: 5,
-    paddingHorizontal: 18,
-    paddingTop: 10,
-    paddingBottom: 0,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 0,
-  },
-  flag: {
-    fontSize: 22,
-    marginRight: 10,
-  },
-  titleBlock: {
-    flex: 1,
-  },
-  codeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  currencyCode: {
-    fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  currencyName: {
-    marginTop: 0,
-    fontSize: 12,
-  },
-  baseAmount: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  converterBlock: {
-    alignItems: 'flex-end',
-    gap: 4,
-    marginTop: -4,
-  },
-  resultsBlock: {
-    alignSelf: 'stretch',
-    gap: 2,
-  },
-  resultRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'flex-end',
-    gap: 10,
-  },
-  resultLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    minWidth: 28,
-    textAlign: 'right',
-  },
-  amountInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minWidth: 132,
-    paddingLeft: 12,
-    paddingRight: 4,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  inputSymbol: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginRight: 4,
-  },
-  amountInput: {
-    flex: 1,
-    minWidth: 80,
-    paddingVertical: 0,
-    paddingHorizontal: 8,
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  primaryValue: {
-    fontSize: 22,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-    textAlign: 'right',
-  },
-  secondaryValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-    textAlign: 'right',
-  },
-});
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
+    card: {
+      flex: 1,
+      borderRadius: radius.lg,
+      borderLeftWidth: 5,
+      paddingHorizontal: spacing.lg + 2,
+      paddingTop: spacing.sm + 2,
+      paddingBottom: 0,
+      ...elevation.card,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 0,
+    },
+    flag: {
+      fontSize: 24,
+      marginRight: spacing.sm + 2,
+    },
+    titleBlock: {
+      flex: 1,
+    },
+    codeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    currencyCode: {
+      fontSize: typography.bodySm.fontSize,
+      fontWeight: '700',
+      letterSpacing: 0.5,
+    },
+    currencyName: {
+      marginTop: 0,
+      fontSize: typography.caption.fontSize,
+    },
+    baseAmount: {
+      fontSize: typography.titleSm.fontSize,
+      fontWeight: '600',
+    },
+    converterBlock: {
+      alignItems: 'flex-end',
+      gap: spacing.xs,
+      marginTop: -spacing.xs,
+    },
+    resultsBlock: {
+      alignSelf: 'stretch',
+      gap: 2,
+    },
+    resultRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      justifyContent: 'flex-end',
+      gap: spacing.sm + 2,
+    },
+    resultLabel: {
+      fontSize: typography.caption.fontSize + 1,
+      fontWeight: '600',
+      minWidth: 28,
+      textAlign: 'right',
+    },
+    amountInputRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      minWidth: 140,
+      paddingLeft: spacing.md,
+      paddingRight: spacing.xs,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.sm,
+      borderWidth: 1,
+    },
+    amountInputRowActive: {
+      borderWidth: 1.5,
+    },
+    inputSymbol: {
+      fontSize: typography.titleSm.fontSize,
+      fontWeight: '600',
+      marginRight: spacing.xs,
+    },
+    amountInput: {
+      flex: 1,
+      minWidth: 88,
+      paddingVertical: 0,
+      paddingHorizontal: spacing.sm,
+      fontSize: typography.titleSm.fontSize,
+      fontWeight: '600',
+      textAlign: 'right',
+    },
+    primaryValue: {
+      ...typography.display,
+      textAlign: 'right',
+    },
+    secondaryValue: {
+      fontSize: typography.titleSm.fontSize,
+      fontWeight: '700',
+      letterSpacing: -0.3,
+      textAlign: 'right',
+    },
+  });
+}
