@@ -7,6 +7,7 @@ import { formatAppVersion } from '../constants/appVersion';
 import { getOptionalCurrencies } from '../constants/currencies';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { AppColors } from '../theme/colors';
+import { radius, spacing, typography } from '../theme/tokens';
 import { OptionalCurrencyCode, OptionalCurrencyPreferences } from '../types';
 import { getCurrencyName } from '../utils/currencyName';
 
@@ -33,6 +34,7 @@ export function CurrencySettingsModal({
       <View style={styles.backdrop}>
         <SafeAreaView style={styles.sheetSafeArea} edges={['bottom']}>
           <View style={styles.sheet}>
+            <View style={styles.grabHandle} accessibilityElementsHidden importantForAccessibility="no" />
             <View style={styles.header}>
               <Text style={styles.title}>{t('settings.title')}</Text>
               <Pressable onPress={onClose} hitSlop={8}>
@@ -88,11 +90,19 @@ function createStyles(colors: AppColors) {
     },
     sheet: {
       backgroundColor: colors.modalSheet,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      paddingHorizontal: 20,
-      paddingTop: 20,
-      paddingBottom: 16,
+      borderTopLeftRadius: radius.sheet,
+      borderTopRightRadius: radius.sheet,
+      paddingHorizontal: spacing.xl,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.lg,
+    },
+    grabHandle: {
+      alignSelf: 'center',
+      width: 40,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.cardBorder === 'transparent' ? '#CBD5E1' : colors.cardBorder,
+      marginBottom: spacing.md,
     },
     header: {
       flexDirection: 'row',
@@ -101,7 +111,7 @@ function createStyles(colors: AppColors) {
       marginBottom: 8,
     },
     title: {
-      fontSize: 20,
+      fontSize: typography.titleSm.fontSize + 2,
       fontWeight: '800',
       color: colors.textPrimary,
     },
