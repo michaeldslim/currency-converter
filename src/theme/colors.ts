@@ -20,6 +20,9 @@ export interface AppColors {
   todayButtonBg: string;
   todayButtonBorder: string;
   todayButtonText: string;
+  resetChipBg: string;
+  resetChipBorder: string;
+  resetChipText: string;
   modalBackdrop: string;
   modalSheet: string;
   shadow: string;
@@ -48,6 +51,9 @@ export const lightColors: AppColors = {
   todayButtonBg: '#FFFFFF',
   todayButtonBorder: '#CBD5E1',
   todayButtonText: '#334155',
+  resetChipBg: '#DCFCE7',
+  resetChipBorder: '#86EFAC',
+  resetChipText: '#166534',
   modalBackdrop: 'rgba(15, 23, 42, 0.45)',
   modalSheet: '#FFFFFF',
   shadow: '#0F172A',
@@ -76,6 +82,9 @@ export const darkColors: AppColors = {
   todayButtonBg: '#1E293B',
   todayButtonBorder: '#475569',
   todayButtonText: '#E2E8F0',
+  resetChipBg: '#14532D',
+  resetChipBorder: '#22C55E',
+  resetChipText: '#BBF7D0',
   modalBackdrop: 'rgba(0, 0, 0, 0.6)',
   modalSheet: '#1E293B',
   shadow: '#000000',
