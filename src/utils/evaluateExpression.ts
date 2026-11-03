@@ -167,6 +167,14 @@ export function formatCalculatedAmount(value: number): string {
   return String(rounded);
 }
 
+export function isCalculatorOperatorToken(token: string): boolean {
+  return token === '+' || token === '-' || token === DISPLAY_MUL || token === DISPLAY_DIV;
+}
+
+export function isCalculatorDigitToken(token: string): boolean {
+  return /^[0-9]$/.test(token) || token === '.';
+}
+
 export function appendCalculatorToken(expression: string, token: string): string {
   if (token === '.') {
     const parts = splitExpressionTail(expression);
@@ -183,7 +191,7 @@ export function appendCalculatorToken(expression: string, token: string): string
   if (token === DISPLAY_MUL || token === DISPLAY_DIV || token === '+' || token === '-') {
     const trimmed = expression.trimEnd();
     if (trimmed === '') {
-      return token === '-' ? '-' : expression;
+      return token === '-' ? '-' : trimmed + token;
     }
     const lastChar = trimmed[trimmed.length - 1];
     if (lastChar === '+' || lastChar === '-' || lastChar === DISPLAY_MUL || lastChar === DISPLAY_DIV) {

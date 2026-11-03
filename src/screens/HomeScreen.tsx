@@ -23,6 +23,8 @@ import {
   appendCalculatorToken,
   evaluateArithmeticExpression,
   formatCalculatedAmount,
+  isCalculatorDigitToken,
+  isCalculatorOperatorToken,
   resolveLiveConversionAmount,
 } from '../utils/evaluateExpression';
 import { formatFetchedAt, formatRateDate } from '../utils/formatCurrency';
@@ -41,6 +43,7 @@ export function HomeScreen() {
   const headerHeightRef = useRef(0);
   const scrollViewportHeightRef = useRef(0);
   const cardOffsetRef = useRef<Record<string, number>>({});
+  const replaceExpressionOnNextDigitRef = useRef(false);
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [activeCurrencyCode, setActiveCurrencyCode] = useState<CurrencyCode | null>(null);
@@ -111,12 +114,14 @@ export function HomeScreen() {
     setActiveCurrencyCode(null);
     setCalculatorExpression('');
     setCalculatorError(null);
+    replaceExpressionOnNextDigitRef.current = false;
   };
 
   const handleCardFocus = (currency: CurrencyConfig) => {
     setActiveCurrencyCode(currency.code);
     setCalculatorExpression('');
     setCalculatorError(null);
+    replaceExpressionOnNextDigitRef.current = false;
     focusCardForEntry(currency, enabledCurrencies);
   };
 
@@ -124,11 +129,35 @@ export function HomeScreen() {
     resetAllAmountsToDefault(enabledCurrencies);
     setCalculatorExpression('');
     setCalculatorError(null);
+    replaceExpressionOnNextDigitRef.current = false;
   };
 
   const handleCalculatorDigitOrOperator = (token: string) => {
     setCalculatorError(null);
-    setCalculatorExpression((previous) => appendCalculatorToken(previous, token));
+
+    setCalculatorExpression((previous) => {
+      if (
+        replaceExpressionOnNextDigitRef.current &&
+        isCalculatorDigitToken(token)
+      ) {
+        replaceExpressionOnNextDigitRef.current = false;
+        return appendCalculatorToken('', token);
+      }
+
+      if (isCalculatorOperatorToken(token)) {
+        replaceExpressionOnNextDigitRef.current = false;
+      }
+
+      let base = previous;
+      if (base.trim() === '' && isCalculatorOperatorToken(token) && activeCurrencyCode !== null) {
+        const committed = amountsByCode[activeCurrencyCode] ?? '';
+        if (committed.trim() !== '') {
+          base = committed;
+        }
+      }
+
+      return appendCalculatorToken(base, token);
+    });
   };
 
   const handleCalculatorApply = () => {
@@ -147,9 +176,11 @@ export function HomeScreen() {
       return;
     }
 
-    setAmountForCode(activeCurrencyCode, formatCalculatedAmount(result));
-    setCalculatorExpression('');
+    const formatted = formatCalculatedAmount(result);
+    setAmountForCode(activeCurrencyCode, formatted);
+    setCalculatorExpression(formatted);
     setCalculatorError(null);
+    replaceExpressionOnNextDigitRef.current = true;
   };
 
   const getInputDisplayText = (code: CurrencyCode) => {
@@ -374,6 +405,7 @@ export function HomeScreen() {
             onClear={() => {
               setCalculatorExpression('');
               setCalculatorError(null);
+              replaceExpressionOnNextDigitRef.current = false;
             }}
             onApply={handleCalculatorApply}
             onResetAll={handleResetAllAmounts}
